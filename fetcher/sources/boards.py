@@ -123,7 +123,10 @@ def reed(term: str, *, pages: int = 2, location: str = "",
         })
         try:
             data = request_json(url, headers=_reed_headers())
-        except FetchError:
+        except FetchError as exc:
+            # A bad key fails identically to "no more pages" unless we say so.
+            if page == 0:
+                raise FetchError(f"reed search failed: {exc}") from exc
             break
         results = data.get("results") or []
         for j in results:

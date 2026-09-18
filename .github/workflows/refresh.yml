@@ -48,10 +48,26 @@ jobs:
           git add site/data/jobs.json
           if git diff --staged --quiet; then
             echo 'No change in the job list.'
-          else
-            git commit -m "chore: refresh jobs ($(date -u '+%Y-%m-%d'))"
-            git push
+            exit 0
           fi
+          git commit -m "chore: refresh jobs ($(date -u '+%Y-%m-%d'))"
+          # Someone may have pushed while this run was fetching, which takes
+          # several minutes. Rebase onto whatever landed and try again.
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "push rejected, rebasing onto origin/main (attempt $attempt)"
+            git fetch origin main
+            # The snapshot is generated output: ours always wins a conflict.
+            git rebase origin/main -X ours || {
+              git checkout --ours site/data/jobs.json
+              git add site/data/jobs.json
+              git rebase --continue || git rebase --abort
+            }
+          done
+          echo "::warning::could not push the refreshed snapshot after 3 attempts"
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

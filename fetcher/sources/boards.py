@@ -30,6 +30,17 @@ ADZUNA_ID = os.environ.get("ADZUNA_APP_ID", "").strip()
 ADZUNA_KEY = os.environ.get("ADZUNA_APP_KEY", "").strip()
 REED_KEY = os.environ.get("REED_API_KEY", "").strip()
 
+# Reed's search results carry only a short snippet; the full advert needs one
+# request per job. Those dominate the run time, so they get their own budget and
+# are spent only where the snippet is genuinely too thin to match on.
+REED_DETAIL_BUDGET = int(os.environ.get("REED_DETAIL_BUDGET", "450"))
+REED_SNIPPET_ENOUGH = 700     # characters; longer snippets skip the detail call
+_reed_details = 0
+
+
+def reed_details_used() -> int:
+    return _reed_details
+
 # Titles we never want back from a broad keyword search.
 EXCLUDE_WORDS = ("senior", "head", "director", "principal", "lead", "manager")
 
@@ -122,7 +133,10 @@ def reed(term: str, *, pages: int = 2, location: str = "",
                 continue
             body = strip_html(j.get("jobDescription") or "")
             job_id = j.get("jobId")
-            if job_id:
+            global _reed_details
+            if (job_id and len(body) < REED_SNIPPET_ENOUGH
+                    and _reed_details < REED_DETAIL_BUDGET):
+                _reed_details += 1
                 try:
                     detail = request_json(
                         f"https://www.reed.co.uk/api/1.0/jobs/{job_id}",

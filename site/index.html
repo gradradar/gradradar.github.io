@@ -108,6 +108,10 @@
         <option value="30" selected>Last month</option>
       </select>
 
+      <button class="btn btn-block" id="search-kit">🔍 Daily LinkedIn search kit</button>
+      <p class="hint" style="margin-top:6px">Boolean searches built from your CV.
+        Save them as LinkedIn alerts and it checks daily for you.</p>
+
       <button class="btn btn-ghost btn-block" id="reset">Reset everything</button>
     </section>
   </aside>
@@ -116,12 +120,18 @@
   <section class="results">
 
     <nav class="streams" id="streams" aria-label="Kind of work">
-      <button class="stream is-on" data-stream="early">Schemes, internships &amp; placements <span class="n" id="s-early">0</span></button>
-      <button class="stream" data-stream="graduate-scheme">Grad schemes <span class="n" id="s-graduate-scheme">0</span></button>
-      <button class="stream" data-stream="internship">Internships <span class="n" id="s-internship">0</span></button>
-      <button class="stream" data-stream="placement">Placements <span class="n" id="s-placement">0</span></button>
-      <button class="stream" data-stream="grad-all">Everything graduate <span class="n" id="s-grad-all">0</span></button>
-      <button class="stream" data-stream="local">Local &amp; part-time <span class="n" id="s-local">0</span></button>
+      <div class="seg" role="group">
+        <button class="stream is-on" data-stream="early">Early careers <span class="n" id="s-early">0</span></button>
+        <button class="stream" data-stream="grad-all">All graduate <span class="n" id="s-grad-all">0</span></button>
+        <button class="stream" data-stream="local">Local &amp; part-time <span class="n" id="s-local">0</span></button>
+      </div>
+    </nav>
+
+    <nav class="substreams" id="substreams" aria-label="Type of early-careers role">
+      <button class="sub is-on" data-stream="early">All <span class="n" id="s-early-2">0</span></button>
+      <button class="sub" data-stream="graduate-scheme">Grad schemes <span class="n" id="s-graduate-scheme">0</span></button>
+      <button class="sub" data-stream="internship">Internships <span class="n" id="s-internship">0</span></button>
+      <button class="sub" data-stream="placement">Placements <span class="n" id="s-placement">0</span></button>
     </nav>
 
     <nav class="tabs" id="tabs">

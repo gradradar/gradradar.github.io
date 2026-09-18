@@ -262,25 +262,44 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 4px; fon
 }
 
 /* ------------------------------------------------------ stream selector */
-.streams {
-  display: flex; flex-wrap: wrap; gap: 4px;
-  padding: 6px; margin-bottom: 10px;
+.streams { margin-bottom: 8px; }
+.seg {
+  display: inline-flex; gap: 2px; padding: 4px;
   background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); box-shadow: var(--shadow);
+  border-radius: 11px; box-shadow: var(--shadow);
+  max-width: 100%; overflow-x: auto; scrollbar-width: none;
 }
+.seg::-webkit-scrollbar { display: none; }
 .stream {
-  font: inherit; font-size: 13px; font-weight: 500; padding: 7px 13px;
-  cursor: pointer; border: 1px solid transparent; border-radius: 8px;
-  background: none; color: var(--ink-2); white-space: nowrap;
+  font: inherit; font-size: 13.5px; font-weight: 500;
+  padding: 8px 16px; white-space: nowrap; cursor: pointer;
+  border: 0; border-radius: 8px; background: none; color: var(--ink-2);
+  transition: background .12s, color .12s;
 }
-.stream:hover { background: var(--surface-2); }
-.stream.is-on {
+.stream:hover { background: var(--surface-2); color: var(--ink); }
+.stream.is-on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.stream .n {
+  display: inline-block; margin-left: 7px; font-size: 11px;
+  font-variant-numeric: tabular-nums; opacity: .7;
+}
+.stream.is-on .n { opacity: .85; }
+
+.substreams {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 0 2px;
+}
+.sub {
+  font: inherit; font-size: 12.5px; padding: 5px 12px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink-2); white-space: nowrap;
+}
+.sub:hover { border-color: var(--ink-3); color: var(--ink); }
+.sub.is-on {
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   color: var(--accent); font-weight: 600;
 }
-.stream .n {
-  font-size: 11px; margin-left: 5px; opacity: .75;
+.sub .n {
+  margin-left: 5px; font-size: 11px; opacity: .7;
   font-variant-numeric: tabular-nums;
 }
 .stream-note {
@@ -377,3 +396,20 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 4px; fon
   border-left: 3px solid var(--warn); border-radius: 0 8px 8px 0; color: var(--ink-2);
 }
 .btn-tailor { border-color: color-mix(in srgb, var(--accent) 32%, transparent); color: var(--accent); }
+.badge-len {
+  background: color-mix(in srgb, #8b5cf6 12%, transparent);
+  color: #7c4ddb; border-color: color-mix(in srgb, #8b5cf6 28%, transparent);
+}
+@media (prefers-color-scheme: dark) { .badge-len { color: #b794f6; } }
+
+/* ----------------------------------------------------- LinkedIn search kit */
+.kit { padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.kit:last-child { border-bottom: 0; }
+.kit-label { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.kit-q {
+  display: block; padding: 9px 11px; margin-bottom: 8px;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: 8px; color: var(--ink-2); word-break: break-word;
+}
+.kit-actions { margin: 0; display: flex; gap: 6px; flex-wrap: wrap; }

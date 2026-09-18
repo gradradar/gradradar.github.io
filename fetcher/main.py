@@ -14,6 +14,7 @@ from pathlib import Path
 from . import classify
 from .config import ROOT, load_lists
 from .deadline import find_deadline
+from .duration import find_duration
 from .http import FetchError
 from .models import RawJob
 from .salary import annual_equivalent, find_commission, find_salary, format_salary
@@ -192,13 +193,14 @@ def collect_boards(searches: dict[str, list[str]], log) -> list[RawJob]:
         log("  reed:")
         for term in terms:
             try:
-                found = boards.reed(term, title_filter=title_prefilter)
+                found = boards.reed(term, pages=1, title_filter=title_prefilter)
             except FetchError as exc:
                 log(f"    {term}: {exc}")
                 continue
             jobs.extend(found)
             if found:
                 log(f"    {term:<24} {len(found):>3}")
+        log(f"  reed used {boards.reed_details_used()} detail requests")
     else:
         log("  reed: skipped (set REED_API_KEY)")
     return jobs
@@ -243,6 +245,7 @@ def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> d
         "closes": closes,
         "rolling": 1 if rolling else 0,
         "type": role_type,
+        "duration": find_duration(job.title, body) if stream == "graduate" else "",
         "cats": cats,
         "salary": salary,
         "salaryAnnual": salary_annual,
@@ -330,6 +333,8 @@ def collapse_multi_location(records: list[dict]) -> list[dict]:
                 lead["closes"] = m["closes"]
             if not lead.get("commission") and m.get("commission"):
                 lead["commission"] = m["commission"]
+            if not lead.get("duration") and m.get("duration"):
+                lead["duration"] = m["duration"]
         out.append(lead)
     return out
 

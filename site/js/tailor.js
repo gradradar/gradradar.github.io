@@ -132,3 +132,120 @@ const Tailor = (() => {
 
   return { analyse, coverLetter, CV_TIPS };
 })();
+
+
+/* ---------------------------------------------------------------------------
+ * LinkedIn search kit
+ *
+ * Job Radar can't index LinkedIn, but you can search it yourself in seconds if
+ * you know what to type. These are boolean queries built from your CV and
+ * keywords, meant to be saved as LinkedIn alerts and re-run daily.
+ * ------------------------------------------------------------------------- */
+const SearchKit = (() => {
+
+  // Field words worth building a query around, in rough priority order.
+  const FIELDS = [
+    'marketing', 'finance', 'accounting', 'consulting', 'strategy', 'sales',
+    'business development', 'data', 'analytics', 'operations', 'supply chain',
+    'human resources', 'recruitment', 'communications', 'brand', 'content',
+    'social media', 'digital', 'ecommerce', 'insight', 'research', 'audit',
+    'tax', 'risk', 'investment', 'banking', 'insurance', 'product',
+    'project management', 'procurement', 'merchandising', 'buying',
+  ];
+
+  const TYPE_GROUPS = {
+    'graduate-scheme': {
+      label: 'Graduate schemes',
+      phrase: '("graduate scheme" OR "graduate programme" OR "graduate program")',
+    },
+    'internship': {
+      label: 'Internships',
+      phrase: '("summer internship" OR "internship" OR "summer analyst" OR "spring week")',
+    },
+    'placement': {
+      label: 'Placements',
+      phrase: '("industrial placement" OR "year in industry" OR "placement year" OR "12 month placement")',
+    },
+  };
+
+  /** Pick the fields that match this person, from their CV and keywords. */
+  function fieldsFor(cvText, boostTerms) {
+    const hay = `${(boostTerms || []).join(' ')} ${cvText || ''}`.toLowerCase();
+    const hits = FIELDS
+      .map(f => [f, (hay.match(new RegExp(f.replace(/ /g, '[ -]'), 'g')) || []).length])
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([f]) => f);
+    // Keywords the person typed always win over anything inferred from the CV.
+    const typed = (boostTerms || []).map(t => t.toLowerCase().trim()).filter(Boolean);
+    return [...new Set([...typed, ...hits])].slice(0, 4);
+  }
+
+  function quote(term) {
+    return term.includes(' ') ? `"${term}"` : term;
+  }
+
+  /** LinkedIn jobs search, filtered to the last 24 hours. */
+  function url(query, location) {
+    const params = new URLSearchParams({
+      keywords: query,
+      location: location || 'United Kingdom',
+      f_TPR: 'r86400',          // posted in the past 24 hours
+    });
+    return `https://www.linkedin.com/jobs/search/?${params}`;
+  }
+
+  /**
+   * @returns [{ label, query, url }]
+   */
+  function build({ cvText, boost, location, streams }) {
+    const fields = fieldsFor(cvText, boost);
+    const where = location || 'United Kingdom';
+    const types = (streams && streams.length ? streams : Object.keys(TYPE_GROUPS));
+    const out = [];
+
+    for (const key of types) {
+      const group = TYPE_GROUPS[key];
+      if (!group) continue;
+
+      // Broad: the type on its own, for a daily sweep.
+      out.push({
+        label: `${group.label} — everything`,
+        query: group.phrase,
+        url: url(group.phrase, where),
+      });
+
+      // Narrow: the type crossed with what they actually want.
+      if (fields.length) {
+        const fieldPart = '(' + fields.slice(0, 3).map(quote).join(' OR ') + ')';
+        const query = `${group.phrase} AND ${fieldPart}`;
+        out.push({
+          label: `${group.label} — ${fields.slice(0, 3).join(' / ')}`,
+          query,
+          url: url(query, where),
+        });
+      }
+    }
+
+    // A year-ahead sweep: schemes are advertised well in advance.
+    const year = new Date().getFullYear() + 1;
+    const future = `("graduate scheme" OR "graduate programme" OR internship) AND (${year} OR ${year + 1})`;
+    out.push({
+      label: `${year}/${year + 1} intakes`,
+      query: future,
+      url: url(future, where),
+    });
+
+    return out;
+  }
+
+  const TIPS = [
+    'Run these in LinkedIn\'s <strong>Jobs</strong> tab, not the main search bar — boolean operators only work there.',
+    'Hit <strong>Set alert</strong> on each one. LinkedIn then emails you new matches daily, which is the whole point — you stop having to remember.',
+    'Every link here is pre-filtered to <strong>the past 24 hours</strong>, so you only see what is genuinely new since yesterday.',
+    'Add <strong>Experience level → Internship / Entry level</strong> in LinkedIn\'s own filters to cut the senior roles boolean can\'t.',
+    'Applying within 24 hours of posting measurably improves your odds — most graduate schemes review on a rolling basis and fill before the advertised deadline.',
+  ];
+
+  return { build, TIPS };
+})();

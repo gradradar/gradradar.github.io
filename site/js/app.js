@@ -167,6 +167,8 @@
       const el = document.getElementById('s-' + key);
       if (el) el.textContent = streamCounts[key];
     }
+    const earlyAll = document.getElementById('s-early-2');
+    if (earlyAll) earlyAll.textContent = streamCounts['early'];
     const note = $('#stream-note');
     if (STREAM_NOTE[state.stream]) {
       note.hidden = false; note.textContent = STREAM_NOTE[state.stream];
@@ -220,14 +222,6 @@
     'local': ['Local / hourly', 'badge-local'],
   };
 
-  function linkedInSearch(job) {
-    const params = new URLSearchParams({
-      keywords: job.title,
-      location: job.location || 'United Kingdom',
-    });
-    return `https://www.linkedin.com/jobs/search/?${params}`;
-  }
-
   function card({ job, score, reasons, scored }) {
     const el = document.createElement('article');
     el.className = 'card';
@@ -257,6 +251,7 @@
             ? `<span class="badge badge-pay">${esc(job.salary)}</span>`
             : '<span class="badge badge-nopay">Pay not stated</span>'}
           ${job.commission ? `<span class="badge badge-comm">${esc(job.commission)}</span>` : ''}
+          ${job.duration ? `<span class="badge badge-len" title="How long the role lasts">⏱ ${esc(job.duration)}</span>` : ''}
         </p>
         <h3><a href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">${esc(job.title)}</a></h3>
         <p class="company">${esc(job.company)}</p>
@@ -277,8 +272,6 @@
           <button class="btn btn-sm ${state.saved[job.id] ? 'is-on' : ''}" data-act="save" data-id="${job.id}">${state.saved[job.id] ? '★ Saved' : '☆ Save'}</button>
           <button class="btn btn-sm ${state.applied[job.id] ? 'is-on' : ''}" data-act="applied" data-id="${job.id}">${state.applied[job.id] ? '✓ Applied' : 'Mark applied'}</button>
           <button class="btn btn-sm btn-tailor" data-act="tailor" data-id="${job.id}">✎ Tailor CV</button>
-          <a class="btn btn-sm btn-quiet" href="${esc(linkedInSearch(job))}" target="_blank" rel="noopener noreferrer"
-             title="Search LinkedIn for this role">in Search ↗</a>
           <button class="btn btn-sm btn-quiet" data-act="hide" data-id="${job.id}">${state.hidden[job.id] ? 'Unhide' : 'Hide'}</button>
         </div>
       </div>`;
@@ -372,6 +365,21 @@
     return 'Ignoring your CV completely — keywords only.';
   }
 
+  /* Keep both tab rows in step, and only show the sub-row for early careers. */
+  const EARLY_STREAMS = ['early', 'graduate-scheme', 'internship', 'placement'];
+
+  function syncStreamButtons() {
+    const inEarly = EARLY_STREAMS.includes(state.stream);
+    [...document.querySelectorAll('.stream')].forEach(b => {
+      const on = b.dataset.stream === state.stream
+        || (b.dataset.stream === 'early' && inEarly);
+      b.classList.toggle('is-on', on);
+    });
+    [...document.querySelectorAll('.sub')].forEach(b =>
+      b.classList.toggle('is-on', b.dataset.stream === state.stream));
+    $('#substreams').hidden = !inEarly;
+  }
+
   /* --------------------------------------------------------- tailor modal */
   function openTailor(id) {
     const job = state.jobs.find(j => j.id === id);
@@ -380,6 +388,7 @@
     const analysis = Tailor.analyse(job, state.cvText, model);
     const letter = Tailor.coverLetter(job, analysis);
 
+    $('#tailor-title').textContent = 'Tailor your application';
     $('#tailor-sub').textContent = `${job.title} — ${job.company}`;
     $('#tailor-body').innerHTML = `
       ${analysis.hasCv ? '' : `<p class="warn-note">No CV loaded, so this is based
@@ -424,6 +433,52 @@
       navigator.clipboard.writeText(letter).then(
         () => { copy.textContent = 'Copied ✓'; setTimeout(() => copy.textContent = 'Copy scaffold', 1800); },
         () => { copy.textContent = 'Press Ctrl/Cmd+C'; });
+    });
+  }
+
+  function openSearchKit() {
+    const streams = EARLY_STREAMS.includes(state.stream)
+      ? (state.stream === 'early' ? ['graduate-scheme', 'internship', 'placement'] : [state.stream])
+      : ['graduate-scheme', 'internship', 'placement'];
+    const kit = SearchKit.build({
+      cvText: state.cvText, boost: state.boost,
+      location: state.loc || 'United Kingdom', streams,
+    });
+
+    $('#tailor-sub').textContent =
+      'Searches to run on LinkedIn — save each as an alert and it checks for you';
+    $('#tailor-title').textContent = 'Daily LinkedIn search kit';
+    $('#tailor-body').innerHTML = `
+      <p class="tsec-hint">Job Radar can't index LinkedIn — they block it. But you
+        can search it yourself in seconds if you know what to type. These are built
+        from your CV and keywords${state.loc ? `, around <strong>${esc(state.loc)}</strong>` : ''}.</p>
+      <section class="tsec">
+        ${kit.map((k, i) => `
+          <div class="kit">
+            <p class="kit-label">${esc(k.label)}</p>
+            <code class="kit-q" id="kq${i}">${esc(k.query)}</code>
+            <p class="kit-actions">
+              <button class="btn btn-sm" data-copy="${i}">Copy</button>
+              <a class="btn btn-sm btn-primary" href="${esc(k.url)}" target="_blank"
+                 rel="noopener noreferrer">Run on LinkedIn ↗</a>
+            </p>
+          </div>`).join('')}
+      </section>
+      <section class="tsec">
+        <h3>How to get the most from these</h3>
+        <ul class="tips">${SearchKit.TIPS.map(t => `<li>${t}</li>`).join('')}</ul>
+      </section>`;
+
+    $('#tailor').hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('#tailor-body').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-copy]');
+      if (!btn) return;
+      const text = kit[Number(btn.dataset.copy)].query;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => btn.textContent = 'Copy', 1600);
+      }, () => { btn.textContent = 'Ctrl/Cmd+C'; });
     });
   }
 
@@ -477,18 +532,20 @@
       save(); render();
     });
 
-    $('#streams').addEventListener('click', e => {
-      const btn = e.target.closest('.stream');
+    const onStreamClick = e => {
+      const btn = e.target.closest('.stream, .sub');
       if (!btn) return;
       state.stream = btn.dataset.stream;
-      [...document.querySelectorAll('.stream')].forEach(b => b.classList.toggle('is-on', b === btn));
+      syncStreamButtons();
       // Local work is judged on trade and pay, not CV keyword overlap.
       if (state.stream === 'local' && state.sort === 'match') state.sort = 'date';
       if (state.stream !== 'local' && state.sort === 'date' && state.cvText) state.sort = 'match';
       $('#sort').value = state.sort;
       refreshCatFilter();
       save(); render();
-    });
+    };
+    $('#streams').addEventListener('click', onStreamClick);
+    $('#substreams').addEventListener('click', onStreamClick);
 
     $('#filter-deadline').checked = state.deadlineOnly;
     $('#filter-deadline').addEventListener('change', e => {
@@ -557,14 +614,15 @@
       if (e.key === 'Escape' && !$('#tailor').hidden) closeTailor();
     });
 
+    $('#search-kit').addEventListener('click', openSearchKit);
+
     $('#reset').addEventListener('click', () => {
       if (!confirm('Clear your CV, keywords, filters and saved roles?')) return;
       localStorage.removeItem(STORE);
       location.reload();
     });
 
-    [...document.querySelectorAll('.stream')].forEach(b =>
-      b.classList.toggle('is-on', b.dataset.stream === state.stream));
+    syncStreamButtons();
 
     if (state.cvText) {
       $('#cv-status').hidden = false;

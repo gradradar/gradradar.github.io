@@ -17,7 +17,7 @@ from .deadline import find_deadline
 from .duration import find_duration
 from .opening import find_opening, intake_year
 from .http import FetchError
-from .models import RawJob, slim_location
+from .models import RawJob
 from .salary import annual_equivalent, find_commission, find_salary, format_salary
 from .summarise import highlights, role_gist
 from .sources import aggregators, ats, boards, workday
@@ -25,10 +25,6 @@ from .text import keywords, normalise_ws, summarise
 from .uk import is_remote, is_uk
 
 OUT_PATH = ROOT / "site" / "data" / "jobs.json"
-
-# Calls held back from the graduate pass so the local/hourly stream still gets
-# a share of a small Adzuna plan.
-ADZUNA_LOCAL_RESERVE = 1200
 
 # Prefer the employer's own board over an aggregator's copy of the same advert.
 SOURCE_RANK = {
@@ -43,14 +39,6 @@ def title_prefilter(title: str, location: str) -> bool:
     if not is_uk(location):
         return False
     keep, _, _ = classify.is_early_career(title, "")
-    return keep
-
-
-def local_prefilter(title: str, location: str) -> bool:
-    """Gate for the local/hourly stream before paying for a detail request."""
-    if not is_uk(location):
-        return False
-    keep, _, _ = classify.is_local_job(title, "")
     return keep
 
 
@@ -101,37 +89,6 @@ def collect_aggregators(log) -> list[RawJob]:
     return jobs
 
 
-def collect_local(searches: dict[str, list[str]], log) -> list[RawJob]:
-    """Bar, retail, warehouse and care work. Adzuna and Reed only - employer
-    ATS boards do not carry this kind of vacancy."""
-    jobs: list[RawJob] = []
-    terms = searches.get("terms", [])
-    locations = [("" if loc.upper() == "ALL" else loc)
-                 for loc in searches.get("locations", ["ALL"])]
-
-    if not (boards.adzuna_enabled() or boards.reed_enabled()):
-        log("  local stream: needs ADZUNA_* or REED_API_KEY - skipping")
-        return jobs
-
-    for term in terms:
-        for loc in locations:
-            if boards.adzuna_enabled():
-                try:
-                    found = boards.adzuna(term, where=loc, pages=1)
-                    jobs.extend(found)
-                except FetchError as exc:
-                    log(f"    adzuna {term} @ {loc}: {exc}")
-            if boards.reed_enabled():
-                try:
-                    found = boards.reed(term, location=loc, pages=1,
-                                        title_filter=local_prefilter)
-                    jobs.extend(found)
-                except FetchError as exc:
-                    log(f"    reed {term} @ {loc}: {exc}")
-    log(f"  local stream: {len(jobs)} raw postings")
-    return jobs
-
-
 def collect_ats(employers: dict[str, list[str]], log) -> list[RawJob]:
     jobs: list[RawJob] = []
     tasks = []
@@ -174,8 +131,8 @@ def collect_boards(searches: dict[str, list[str]], log) -> list[RawJob]:
         passes = [("", 4)] + [(loc, 1) for loc in locations if loc]
         for where, pages in passes:
             for term in terms:
-                if boards.adzuna_budget_left() <= ADZUNA_LOCAL_RESERVE:
-                    log("    graduate share spent - saving the rest for local work")
+                if boards.adzuna_budget_left() <= 0:
+                    log("    call budget spent - stopping adzuna here")
                     break
                 try:
                     found = boards.adzuna(term, where=where, pages=pages)
@@ -185,7 +142,7 @@ def collect_boards(searches: dict[str, list[str]], log) -> list[RawJob]:
                 jobs.extend(found)
                 if found:
                     log(f"    {term:<24} @ {where or 'UK':<12} {len(found):>3}")
-            if boards.adzuna_budget_left() <= ADZUNA_LOCAL_RESERVE:
+            if boards.adzuna_budget_left() <= 0:
                 break
         log(f"  adzuna used {boards.adzuna_calls_used()} calls")
     else:
@@ -228,7 +185,7 @@ def resolve_salary(job: RawJob, body: str) -> tuple[str, int]:
     return "", 0
 
 
-def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> dict:
+def to_record(job: RawJob, *, role_type: str, cats: list[str]) -> dict:
     body = normalise_ws(job.description)
     closes, rolling = job.closes, False
     if not closes:
@@ -238,7 +195,6 @@ def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> d
 
     return {
         "id": job.key(),
-        "stream": stream,
         "title": job.title,
         "company": job.company.strip(),
         "location": job.location.strip(),
@@ -249,17 +205,13 @@ def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> d
         "rolling": 1 if rolling else 0,
         "opens": opens,
         "soon": 1 if (opens or not_open_yet) else 0,
-        "intake": intake_year(job.title, body) if stream == "graduate" else "",
-        "town": slim_location(job.location),
-        "lat": job.lat,
-        "lon": job.lon,
+        "intake": intake_year(job.title, body),
         "type": role_type,
-        "duration": find_duration(job.title, body) if stream == "graduate" else "",
+        "duration": find_duration(job.title, body),
         "cats": cats,
         "salary": salary,
         "salaryAnnual": salary_annual,
         "commission": find_commission(body),
-        "shift": classify.shift_pattern(job.title, body) if stream == "local" else "",
         "remote": 1 if (job.remote or is_remote(job.location, body)) else 0,
         "team": (job.extra.get("team") or "")[:60],
         # Pre-extracted so the browser does no heavy text processing.
@@ -271,8 +223,8 @@ def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> d
     }
 
 
-def process(raw: list[RawJob], *, stream: str, cutoff, rejected: dict) -> dict:
-    """Filter, classify and de-duplicate one stream into {id: record}."""
+def process(raw: list[RawJob], *, cutoff, rejected: dict) -> dict:
+    """Filter, classify and de-duplicate postings into {id: record}."""
     best: dict[str, tuple] = {}
     for job in raw:
         if not job.url or not job.title:
@@ -290,80 +242,18 @@ def process(raw: list[RawJob], *, stream: str, cutoff, rejected: dict) -> dict:
                 pass
 
         body = normalise_ws(job.description)
-        if stream == "graduate":
-            keep, role_type, _ = classify.is_early_career(job.title, body)
-            cats = classify.categories(job.title, body)
-        else:
-            keep, cats, _ = classify.is_local_job(job.title, body)
-            role_type = "local"
+        keep, role_type, _ = classify.is_early_career(job.title, body)
+        cats = classify.categories(job.title, body)
         if not keep:
             rejected["filtered"] += 1
             continue
 
-        record = to_record(job, stream=stream, role_type=role_type, cats=cats)
+        record = to_record(job, role_type=role_type, cats=cats)
         rank = (SOURCE_RANK.get(job.source, 1), len(body))
         key = record["id"]
         if key not in best or rank > best[key][:2]:
             best[key] = (*rank, record)
     return {k: v[2] for k, v in best.items()}
-
-
-def slim_local(record: dict) -> dict:
-    """Local work needs far less payload than a graduate role.
-
-    Nobody ranks bar shifts against a CV, so the extracted digest goes and the
-    keyword list shrinks to what the keyword filters actually need.
-    """
-    record.pop("does", None)
-    record.pop("wants", None)
-    record.pop("intake", None)
-    record.pop("opens", None)
-    record["kw"] = " ".join((record.get("kw") or "").split()[:28])
-    record["summary"] = (record.get("summary") or "")[:160]
-    return record
-
-
-def cap_per_town(records: list[dict], limit: int) -> list[dict]:
-    """Keep the newest N per town so one big city cannot swamp the file."""
-    seen: dict[str, int] = {}
-    out: list[dict] = []
-    for r in sorted(records, key=lambda x: (x["posted"] or ""), reverse=True):
-        town = r.get("town") or ""
-        count = seen.get(town, 0)
-        if count >= limit:
-            continue
-        seen[town] = count + 1
-        out.append(r)
-    return out
-
-
-def locate(records: list[dict]) -> dict[str, list[float]]:
-    """Derive a town -> coordinates map from the records that carry them.
-
-    Adzuna publishes latitude and longitude on every result, so the other
-    sources can be placed by matching their town name against that. No external
-    geocoder needed, and the map ships with the snapshot so the browser can
-    measure distance without calling anything.
-    """
-    buckets: dict[str, list[tuple[float, float]]] = {}
-    for r in records:
-        town, lat, lon = r.get("town"), r.get("lat"), r.get("lon")
-        if town and lat is not None and lon is not None:
-            buckets.setdefault(town, []).append((lat, lon))
-
-    places: dict[str, list[float]] = {}
-    for town, points in buckets.items():
-        # Median is steadier than mean when one posting is mis-geocoded.
-        lats = sorted(p[0] for p in points)
-        lons = sorted(p[1] for p in points)
-        mid = len(points) // 2
-        places[town] = [round(lats[mid], 4), round(lons[mid], 4)]
-
-    # Fill in everything else from the map.
-    for r in records:
-        if r.get("lat") is None and r.get("town") in places:
-            r["lat"], r["lon"] = places[r["town"]]
-    return places
 
 
 def collapse_multi_location(records: list[dict]) -> list[dict]:
@@ -375,8 +265,7 @@ def collapse_multi_location(records: list[dict]) -> list[dict]:
     """
     groups: dict[tuple, list[dict]] = {}
     for record in records:
-        key = (record["title"].strip().lower(), record["company"].strip().lower(),
-               record["stream"])
+        key = (record["title"].strip().lower(), record["company"].strip().lower())
         groups.setdefault(key, []).append(record)
 
     out: list[dict] = []
@@ -413,89 +302,60 @@ def build(args) -> dict:
     log = (lambda *a: None) if args.quiet else (lambda *a: print(*a, file=sys.stderr))
     employers = load_lists("employers.yml")
     searches = load_lists("searches.yml")
-    local_searches = load_lists("searches-local.yml")
     workday_sites = load_lists("workday.yml").get("workday", [])
 
-    graduate_raw: list[RawJob] = []
+    raw: list[RawJob] = []
     if not args.no_ats:
         log("employer ATS boards...")
-        graduate_raw += collect_ats(employers, log)
+        raw += collect_ats(employers, log)
     if not args.no_workday:
         log("workday career sites...")
-        graduate_raw += collect_workday(workday_sites, log)
+        raw += collect_workday(workday_sites, log)
     if not args.no_aggregators:
         log("workable cross-company search...")
-        graduate_raw += collect_workable_search(searches, log)
+        raw += collect_workable_search(searches, log)
         log("keyless aggregators...")
-        graduate_raw += collect_aggregators(log)
+        raw += collect_aggregators(log)
     if not args.no_boards:
-        log("job boards (graduate searches)...")
-        graduate_raw += collect_boards(searches, log)
+        log("job boards...")
+        raw += collect_boards(searches, log)
 
-    local_raw: list[RawJob] = []
-    if not args.no_local:
-        log("local and hourly work...")
-        local_raw = collect_local(local_searches, log)
-
-    log(f"\n{len(graduate_raw)} graduate + {len(local_raw)} local raw postings; filtering...")
+    log(f"\n{len(raw)} raw postings; filtering...")
 
     cutoff = date.today() - timedelta(days=args.max_age_days)
     rejected = {"not_uk": 0, "stale": 0, "no_url": 0, "filtered": 0}
 
-    graduate = process(graduate_raw, stream="graduate", cutoff=cutoff, rejected=rejected)
-    local = process(local_raw, stream="local", cutoff=cutoff, rejected=rejected)
-
-    # A posting can legitimately appear in both streams (a retail job that also
-    # reads as entry level). The graduate stream wins so nothing is duplicated.
-    merged = dict(graduate)
-    for key, record in local.items():
-        merged.setdefault(key, record)
-    records = collapse_multi_location(list(merged.values()))
-    places = locate(records)
+    records = collapse_multi_location(
+        list(process(raw, cutoff=cutoff, rejected=rejected).values()))
     records.sort(key=lambda r: (r["posted"] or "", r["title"]), reverse=True)
 
     by_source: dict[str, int] = {}
     by_type: dict[str, int] = {}
-    by_stream: dict[str, int] = {}
     for r in records:
         by_source[r["source"]] = by_source.get(r["source"], 0) + 1
         by_type[r["type"]] = by_type.get(r["type"], 0) + 1
-        by_stream[r["stream"]] = by_stream.get(r["stream"], 0) + 1
 
     with_salary = sum(1 for r in records if r["salary"])
     with_closes = sum(1 for r in records if r["closes"])
-    with_coords = sum(1 for r in records if r.get("lat") is not None)
     coming_soon = sum(1 for r in records if r.get("soon"))
 
     log(f"kept {len(records)} after dedupe")
     log(f"rejected: {rejected}")
-    log(f"by stream: {by_stream}")
     log(f"by type:   {by_type}")
     log(f"by source: {by_source}")
-    log(f"with salary: {with_salary} | with closing date: {with_closes}")
-    log(f"with coordinates: {with_coords} across {len(places)} towns "
+    log(f"with salary: {with_salary} | closing date: {with_closes} "
         f"| coming soon: {coming_soon}")
 
-    graduate_jobs = [r for r in records if r["stream"] == "graduate"]
-    local_jobs = [slim_local(r) for r in cap_per_town(
-        [r for r in records if r["stream"] == "local"], args.local_per_town)]
-
-    meta = {
+    return {
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "count": len(graduate_jobs) + len(local_jobs),
+        "count": len(records),
         "sources": by_source,
         "types": by_type,
-        "streams": {"graduate": len(graduate_jobs), "local": len(local_jobs)},
         "withSalary": with_salary,
         "withClosingDate": with_closes,
-        "withCoords": with_coords,
         "comingSoon": coming_soon,
-        "places": places,
+        "jobs": records,
     }
-    # Two files: the page loads graduate roles immediately and only fetches the
-    # local ones if someone opens that tab. It keeps the phone payload small.
-    return {**meta, "jobs": graduate_jobs,
-            "_local": {**meta, "jobs": local_jobs}}
 
 
 def main() -> int:
@@ -506,26 +366,15 @@ def main() -> int:
     ap.add_argument("--no-boards", action="store_true", help="skip Adzuna/Reed")
     ap.add_argument("--no-workday", action="store_true", help="skip Workday sites")
     ap.add_argument("--no-aggregators", action="store_true", help="skip keyless aggregators")
-    ap.add_argument("--no-local", action="store_true", help="skip the local/hourly stream")
-    ap.add_argument("--local-per-town", type=int, default=70,
-                    help="cap local postings kept per town")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
 
     payload = build(args)
-    local_payload = payload.pop("_local")
     args.out.parent.mkdir(parents=True, exist_ok=True)
-
     args.out.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
                         encoding="utf-8")
-    local_path = args.out.with_name("local.json")
-    local_path.write_text(
-        json.dumps(local_payload, separators=(",", ":"), ensure_ascii=False),
-        encoding="utf-8")
-
-    for path, data in ((args.out, payload), (local_path, local_payload)):
-        print(f"wrote {path} - {len(data['jobs'])} jobs, "
-              f"{path.stat().st_size / 1024:.0f} KB", file=sys.stderr)
+    print(f"wrote {args.out} - {payload['count']} jobs, "
+          f"{args.out.stat().st_size / 1024:.0f} KB", file=sys.stderr)
     return 0
 
 

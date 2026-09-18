@@ -91,8 +91,6 @@ def adzuna(term: str, *, pages: int = 2, max_days_old: int = 45,
                 posted=(j.get("created") or "")[:10] or None,
                 salary_min=j.get("salary_min"),
                 salary_max=j.get("salary_max"),
-                lat=_coord(j.get("latitude")),
-                lon=_coord(j.get("longitude")),
                 extra={"team": (j.get("category") or {}).get("label") or "",
                        "commitment": j.get("contract_time") or j.get("contract_type") or "",
                        "query": term},
@@ -106,15 +104,6 @@ def adzuna(term: str, *, pages: int = 2, max_days_old: int = 45,
 # normal browser. The key still goes in the usual Basic auth header.
 REED_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-
-
-def _coord(value) -> float | None:
-    try:
-        num = float(value)
-    except (TypeError, ValueError):
-        return None
-    # Sanity-check it is somewhere in or near the UK.
-    return num if -12 <= num <= 3 or 49 <= num <= 61 else None
 
 
 def _reed_headers() -> dict[str, str]:

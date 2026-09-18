@@ -20,8 +20,6 @@ class RawJob:
     salary_max: float | None = None
     salary_text: str = ""
     closes: str | None = None          # ISO date, when the source states one
-    lat: float | None = None           # where the source gives coordinates
-    lon: float | None = None
     remote: bool = False
     extra: dict = field(default_factory=dict)
 

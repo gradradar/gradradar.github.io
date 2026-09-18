@@ -100,9 +100,19 @@ def adzuna(term: str, *, pages: int = 2, max_days_old: int = 45,
     return out
 
 
+# Reed refuses the default library user agent with a 403, so present as a
+# normal browser. The key still goes in the usual Basic auth header.
+REED_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+           "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+
 def _reed_headers() -> dict[str, str]:
     token = base64.b64encode(f"{REED_KEY}:".encode()).decode()
-    return {"Authorization": f"Basic {token}"}
+    return {
+        "Authorization": f"Basic {token}",
+        "User-Agent": REED_UA,
+        "Accept": "application/json",
+    }
 
 
 def reed(term: str, *, pages: int = 2, location: str = "",

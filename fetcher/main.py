@@ -15,8 +15,9 @@ from . import classify
 from .config import ROOT, load_lists
 from .deadline import find_deadline
 from .duration import find_duration
+from .opening import find_opening, intake_year
 from .http import FetchError
-from .models import RawJob
+from .models import RawJob, slim_location
 from .salary import annual_equivalent, find_commission, find_salary, format_salary
 from .summarise import highlights, role_gist
 from .sources import aggregators, ats, boards, workday
@@ -27,7 +28,7 @@ OUT_PATH = ROOT / "site" / "data" / "jobs.json"
 
 # Calls held back from the graduate pass so the local/hourly stream still gets
 # a share of a small Adzuna plan.
-ADZUNA_LOCAL_RESERVE = 300
+ADZUNA_LOCAL_RESERVE = 1200
 
 # Prefer the employer's own board over an aggregator's copy of the same advert.
 SOURCE_RANK = {
@@ -232,6 +233,7 @@ def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> d
     closes, rolling = job.closes, False
     if not closes:
         closes, rolling = find_deadline(body, job.posted)
+    opens, not_open_yet = find_opening(body, job.posted)
     salary, salary_annual = resolve_salary(job, body)
 
     return {
@@ -245,6 +247,12 @@ def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> d
         "posted": job.posted,
         "closes": closes,
         "rolling": 1 if rolling else 0,
+        "opens": opens,
+        "soon": 1 if (opens or not_open_yet) else 0,
+        "intake": intake_year(job.title, body) if stream == "graduate" else "",
+        "town": slim_location(job.location),
+        "lat": job.lat,
+        "lon": job.lon,
         "type": role_type,
         "duration": find_duration(job.title, body) if stream == "graduate" else "",
         "cats": cats,
@@ -298,6 +306,35 @@ def process(raw: list[RawJob], *, stream: str, cutoff, rejected: dict) -> dict:
         if key not in best or rank > best[key][:2]:
             best[key] = (*rank, record)
     return {k: v[2] for k, v in best.items()}
+
+
+def locate(records: list[dict]) -> dict[str, list[float]]:
+    """Derive a town -> coordinates map from the records that carry them.
+
+    Adzuna publishes latitude and longitude on every result, so the other
+    sources can be placed by matching their town name against that. No external
+    geocoder needed, and the map ships with the snapshot so the browser can
+    measure distance without calling anything.
+    """
+    buckets: dict[str, list[tuple[float, float]]] = {}
+    for r in records:
+        town, lat, lon = r.get("town"), r.get("lat"), r.get("lon")
+        if town and lat is not None and lon is not None:
+            buckets.setdefault(town, []).append((lat, lon))
+
+    places: dict[str, list[float]] = {}
+    for town, points in buckets.items():
+        # Median is steadier than mean when one posting is mis-geocoded.
+        lats = sorted(p[0] for p in points)
+        lons = sorted(p[1] for p in points)
+        mid = len(points) // 2
+        places[town] = [round(lats[mid], 4), round(lons[mid], 4)]
+
+    # Fill in everything else from the map.
+    for r in records:
+        if r.get("lat") is None and r.get("town") in places:
+            r["lat"], r["lon"] = places[r["town"]]
+    return places
 
 
 def collapse_multi_location(records: list[dict]) -> list[dict]:
@@ -385,6 +422,7 @@ def build(args) -> dict:
     for key, record in local.items():
         merged.setdefault(key, record)
     records = collapse_multi_location(list(merged.values()))
+    places = locate(records)
     records.sort(key=lambda r: (r["posted"] or "", r["title"]), reverse=True)
 
     by_source: dict[str, int] = {}
@@ -397,6 +435,8 @@ def build(args) -> dict:
 
     with_salary = sum(1 for r in records if r["salary"])
     with_closes = sum(1 for r in records if r["closes"])
+    with_coords = sum(1 for r in records if r.get("lat") is not None)
+    coming_soon = sum(1 for r in records if r.get("soon"))
 
     log(f"kept {len(records)} after dedupe")
     log(f"rejected: {rejected}")
@@ -404,6 +444,8 @@ def build(args) -> dict:
     log(f"by type:   {by_type}")
     log(f"by source: {by_source}")
     log(f"with salary: {with_salary} | with closing date: {with_closes}")
+    log(f"with coordinates: {with_coords} across {len(places)} towns "
+        f"| coming soon: {coming_soon}")
 
     return {
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -413,6 +455,9 @@ def build(args) -> dict:
         "streams": by_stream,
         "withSalary": with_salary,
         "withClosingDate": with_closes,
+        "withCoords": with_coords,
+        "comingSoon": coming_soon,
+        "places": places,
         "jobs": records,
     }
 

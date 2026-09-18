@@ -81,8 +81,21 @@
       <label class="lbl">Field</label>
       <div class="checks" id="filter-cat"></div>
 
-      <label class="lbl" for="filter-loc">Location contains</label>
-      <input class="kwinput" id="filter-loc" placeholder="e.g. Nottingham, London">
+      <label class="lbl" for="filter-loc">Where you are</label>
+      <div class="georow">
+        <button class="btn btn-sm" id="use-location">📍 Use my location</button>
+        <span class="geo-state" id="geo-state"></span>
+      </div>
+      <input class="kwinput" id="filter-loc" placeholder="or type a town, e.g. Nottingham">
+
+      <label class="lbl" for="filter-radius">Within</label>
+      <select id="filter-radius">
+        <option value="0">Anywhere</option>
+        <option value="5">5 miles</option>
+        <option value="10">10 miles</option>
+        <option value="25">25 miles</option>
+        <option value="50">50 miles</option>
+      </select>
 
       <div class="toggles">
         <label><input type="checkbox" id="filter-remote"> Remote only</label>
@@ -123,6 +136,7 @@
       <div class="seg" role="group">
         <button class="stream is-on" data-stream="early"><span class="lbl-long">Early careers</span><span class="lbl-short">Early</span> <span class="n" id="s-early">0</span></button>
         <button class="stream" data-stream="grad-all"><span class="lbl-long">All graduate</span><span class="lbl-short">Graduate</span> <span class="n" id="s-grad-all">0</span></button>
+        <button class="stream" data-stream="soon"><span class="lbl-long">Coming soon</span><span class="lbl-short">Soon</span> <span class="n" id="s-soon">0</span></button>
         <button class="stream" data-stream="local"><span class="lbl-long">Local &amp; part-time</span><span class="lbl-short">Local</span> <span class="n" id="s-local">0</span></button>
       </div>
     </nav>
@@ -145,6 +159,7 @@
           <option value="match">Best match</option>
           <option value="date">Most recent</option>
           <option value="closing">Closing soonest</option>
+          <option value="distance">Nearest to me</option>
           <option value="salary">Highest paid</option>
         </select>
       </label>

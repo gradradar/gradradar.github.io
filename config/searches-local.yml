@@ -34,9 +34,50 @@ terms:
 
 # Where to look for local work. Unlike the graduate stream this is
 # location-first - hourly work is only useful if it is commutable.
+# Towns the local stream covers. "Local" means these places - the site has no
+# jobs anywhere it did not fetch, so add wherever your friends actually live.
+# Each town costs roughly one call per term per day, out of a 50,000 allowance.
 locations:
+  # East Midlands
   - Nottingham
   - Derby
   - Leicester
   - Loughborough
   - Mansfield
+  - Northampton
+  # Major cities
+  - London
+  - Manchester
+  - Birmingham
+  - Leeds
+  - Liverpool
+  - Sheffield
+  - Bristol
+  - Newcastle upon Tyne
+  - Glasgow
+  - Edinburgh
+  - Cardiff
+  - Belfast
+  # Big student towns
+  - Coventry
+  - Exeter
+  - Bath
+  - York
+  - Durham
+  - Lancaster
+  - Norwich
+  - Brighton
+  - Southampton
+  - Portsmouth
+  - Reading
+  - Oxford
+  - Cambridge
+  - Hull
+  - Plymouth
+  - Stoke-on-Trent
+  - Preston
+  - Bournemouth
+  - Swansea
+  - Aberdeen
+  - Dundee
+  - Stirling

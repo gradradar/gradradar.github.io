@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import re
 from dataclasses import dataclass, field
 
@@ -19,6 +20,8 @@ class RawJob:
     salary_max: float | None = None
     salary_text: str = ""
     closes: str | None = None          # ISO date, when the source states one
+    lat: float | None = None           # where the source gives coordinates
+    lon: float | None = None
     remote: bool = False
     extra: dict = field(default_factory=dict)
 
@@ -52,6 +55,9 @@ def slim_location(location: str) -> str:
 
 def clean_title(title: str) -> str:
     """Strip the ref numbers and location suffixes boards bolt onto titles."""
+    # Some boards hand back titles already HTML-escaped; escaping again in the
+    # browser would render a literal "&amp;".
+    title = html.unescape(title or "")
     t = re.sub(r"\s*[\[(]?(job\s*)?(ref|req|id)[.:# ]\s*[a-z0-9-]+[\])]?\s*$", "", title, flags=re.I)
     t = re.sub(r"\s*[-–|]\s*(london|uk|united kingdom|remote|hybrid)\s*$", "", t, flags=re.I)
     t = re.sub(r"\s+", " ", t).strip(" -–|,")

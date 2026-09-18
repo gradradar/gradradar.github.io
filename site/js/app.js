@@ -11,7 +11,7 @@
     ['entry-level', 'Entry level'],
     ['local', 'Local / hourly'],
   ];
-  const STREAMS = ['early', 'grad-all', 'graduate-scheme', 'internship', 'placement', 'local'];
+  const STREAMS = ['early', 'grad-all', 'graduate-scheme', 'internship', 'placement', 'soon', 'local'];
   // The three types worth chasing: a structured scheme, an internship or a
   // year in industry. Everything else is the "Everything graduate" tab.
   const EARLY = ['graduate-scheme', 'internship', 'placement'];
@@ -20,6 +20,7 @@
     'graduate-scheme': 'Structured graduate programmes with a defined intake — these usually have hard deadlines, so check the closing dates.',
     'internship': 'Summer internships, spring weeks and insight programmes.',
     'placement': 'Year-in-industry and sandwich placements, normally taken between second and final year.',
+    'soon': 'Schemes and placements that have been announced but are not open yet — diarise these. Only schemes with some advert up can be detected; one with no posting at all is invisible to every source.',
     'local': 'Hourly and part-time work — bar, retail, warehouse, care and admin. Pay is shown per hour where the advert states it.',
   };
   const CATS = [
@@ -43,7 +44,7 @@
     cvWeight: 0.6,
     cats: new Set(), localCats: new Set(),
     loc: '', remote: false, salaryOnly: false, deadlineOnly: false,
-    minPay: 0, maxAge: 30,
+    minPay: 0, maxAge: 30, radius: 0, here: null,
     saved: {}, applied: {}, hidden: {},
   };
 
@@ -104,10 +105,52 @@
       { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  /* ------------------------------------------------------------- distance */
+  // Great-circle distance in miles. Coordinates stay in this browser; nothing
+  // about the user's position is ever sent anywhere.
+  function milesBetween(a, b) {
+    const R = 3958.8, rad = Math.PI / 180;
+    const dLat = (b[0] - a[0]) * rad, dLon = (b[1] - a[1]) * rad;
+    const s1 = Math.sin(dLat / 2), s2 = Math.sin(dLon / 2);
+    const h = s1 * s1 + Math.cos(a[0] * rad) * Math.cos(b[0] * rad) * s2 * s2;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+
+  function jobCoords(job) {
+    if (job.lat != null && job.lon != null) return [job.lat, job.lon];
+    const places = state.meta.places || {};
+    if (job.town && places[job.town]) return places[job.town];
+    return null;
+  }
+
+  function distanceTo(job) {
+    if (!state.here) return null;
+    const at = jobCoords(job);
+    return at ? milesBetween(state.here, at) : null;
+  }
+
+  /** Nearest known town to a point, for showing the user where we think they are. */
+  function nearestTown(point) {
+    const places = state.meta.places || {};
+    let best = null, bestD = Infinity;
+    for (const [town, at] of Object.entries(places)) {
+      const d = milesBetween(point, at);
+      if (d < bestD) { bestD = d; best = town; }
+    }
+    return best ? { town: best, miles: bestD } : null;
+  }
+
+  function titleCase(s) {
+    return (s || '').replace(/\b[a-z]/g, c => c.toUpperCase());
+  }
+
   /* ------------------------------------------------------------ filtering */
   function inStream(job) {
     if (state.stream === 'local') return job.stream === 'local';
+    if (state.stream === 'soon') return job.stream === 'graduate' && !!job.soon;
     if (job.stream !== 'graduate') return false;
+    // Not-yet-open schemes live in their own tab, not among applicable roles.
+    if (job.soon) return false;
     if (state.stream === 'grad-all') return true;
     if (state.stream === 'early') return EARLY.includes(job.type);
     return job.type === state.stream;
@@ -128,6 +171,11 @@
     if (state.salaryOnly && !job.salary) return false;
     if (state.deadlineOnly && !job.closes) return false;
     if (state.minPay && (job.salaryAnnual || 0) < state.minPay) return false;
+    if (state.radius && state.here && !job.remote) {
+      const miles = distanceTo(job);
+      // Unknown location is kept rather than hidden - better than losing a role.
+      if (miles !== null && miles > state.radius) return false;
+    }
     if (state.maxAge) {
       const d = daysBetween(job.posted);
       if (d !== null && -d > state.maxAge) return false;
@@ -152,6 +200,7 @@
       // Stream tallies ignore the current stream but respect everything else.
       if (!state.hidden[id]) {
         if (job.stream === 'local') streamCounts['local']++;
+        else if (job.soon) streamCounts['soon']++;
         else {
           streamCounts['grad-all']++;
           if (EARLY.includes(job.type)) streamCounts['early']++;
@@ -184,6 +233,8 @@
       list.sort((a, b) => (b.job.posted || '').localeCompare(a.job.posted || ''));
     } else if (state.sort === 'salary') {
       list.sort((a, b) => (b.job.salaryAnnual || 0) - (a.job.salaryAnnual || 0));
+    } else if (state.sort === 'distance') {
+      list.sort((a, b) => (distanceTo(a.job) ?? 1e6) - (distanceTo(b.job) ?? 1e6));
     } else if (state.sort === 'closing') {
       const key = j => j.closes ? Date.parse(j.closes) : Infinity;
       list.sort((a, b) => key(a.job) - key(b.job));
@@ -229,7 +280,12 @@
     const closes = closesInfo(job);
     const [badgeLabel, badgeClass] = BADGE[job.type] || ['Role', 'badge-entry'];
 
+    const miles = distanceTo(job);
     const meta = [];
+    if (miles !== null) {
+      meta.push(`<strong class="miles">${miles < 1 ? 'under a mile' :
+        miles.toFixed(miles < 10 ? 1 : 0) + ' miles'} away</strong>`);
+    }
     if (job.location) {
       meta.push(job.locationCount > 2
         ? `<span title="${esc((job.locs || []).join(', '))}">${esc(job.location)}</span>`
@@ -257,8 +313,13 @@
         <p class="company">${esc(job.company)}</p>
         <p class="meta">${meta.join('<span class="dot">·</span>')}</p>
         <p class="dates">
-          <span class="opened">${esc(openedLabel(job.posted))}</span>
-          ${closes ? `<span class="closes lvl-${closes.level}">${esc(closes.text)}</span>` : ''}
+          ${job.soon
+            ? `<span class="closes lvl-soon">${job.opens
+                ? 'Opens ' + esc(fmtDate(job.opens))
+                : 'Not open yet — register interest'}</span>`
+            : `<span class="opened">${esc(openedLabel(job.posted))}</span>
+               ${closes ? `<span class="closes lvl-${closes.level}">${esc(closes.text)}</span>` : ''}`}
+          ${job.intake ? `<span class="intake">${esc(job.intake)} intake</span>` : ''}
         </p>
         ${reasons.length ? `<p class="why"><span class="why-lbl">matches</span>${
           reasons.map(r => `<span class="why-chip">${esc(r)}</span>`).join('')}</p>` : ''}
@@ -641,6 +702,46 @@
     });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !$('#tailor').hidden) closeTailor();
+    });
+
+    const geoState = $('#geo-state');
+    function showWhere() {
+      if (!state.here) { geoState.textContent = ''; return; }
+      const near = nearestTown(state.here);
+      geoState.textContent = near
+        ? `near ${titleCase(near.town)}`
+        : 'location set';
+    }
+    showWhere();
+
+    $('#use-location').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        geoState.textContent = 'not supported — type a town instead';
+        return;
+      }
+      geoState.textContent = 'asking…';
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          state.here = [pos.coords.latitude, pos.coords.longitude];
+          if (!state.radius) state.radius = 25;
+          $('#filter-radius').value = String(state.radius);
+          if (state.sort === 'match' && !state.cvText) state.sort = 'distance';
+          $('#sort').value = state.sort;
+          showWhere();
+          save(); render();
+        },
+        err => {
+          geoState.textContent = err.code === 1
+            ? 'permission denied — type a town instead'
+            : 'could not get location — type a town instead';
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+    });
+
+    $('#filter-radius').value = String(state.radius);
+    $('#filter-radius').addEventListener('change', e => {
+      state.radius = Number(e.target.value);
+      save(); render();
     });
 
     $('#search-kit').addEventListener('click', openSearchKit);

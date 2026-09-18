@@ -514,3 +514,12 @@ code { background: var(--surface-2); padding: .1em .4em; border-radius: 4px; fon
 .brief-body ul { margin: 0; padding-left: 17px; }
 .brief-body li { margin-bottom: 3px; }
 .brief-more { margin: 11px 0 0; font-size: 12.5px; }
+
+/* ------------------------------------------------------------- location */
+.georow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 7px; }
+.geo-state { font-size: 11.5px; color: var(--ink-3); }
+.miles { color: var(--accent); font-weight: 600; }
+.intake {
+  font-size: 11px; padding: 1px 7px; border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line);
+}

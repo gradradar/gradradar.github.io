@@ -130,7 +130,9 @@ def collect_boards(searches: dict[str, list[str]], log) -> list[RawJob]:
         # already returns roles in every city. Only the core terms get an extra
         # per-city pass, for roles that rank too low to surface nationally.
         city_terms = searches.get("cityTerms") or terms[:12]
-        passes: list[tuple[str, int, list[str]]] = [("", 5, terms)]
+        # Fewer, tighter terms means budget to spare, so go deeper on each.
+        # Narrow terms simply run out of results early and cost nothing extra.
+        passes: list[tuple[str, int, list[str]]] = [("", 10, terms)]
         passes += [(loc, 1, city_terms) for loc in locations if loc]
         for where, pages, pass_terms in passes:
             for term in pass_terms:

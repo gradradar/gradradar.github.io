@@ -23,27 +23,31 @@ globalTerms:
   - apprenticeship
 
 terms:
-  # --- schemes, generic ---------------------------------------------------
+  # --- schemes -------------------------------------------------------------
   - graduate scheme
   - graduate programme
   - graduate program
   - graduate trainee
-  - graduate analyst
-  - graduate consultant
-  - graduate management
-  - graduate opportunities
-  - graduate intake
+  - graduate traineeship
   - management trainee
   - rotational programme
   - future leaders programme
   - leadership programme
   - early careers programme
+  - graduate intake
   - graduate 2027
   - graduate 2026
   - trainee scheme
   - school leaver programme
   - degree apprenticeship
-  # --- internships --------------------------------------------------------
+  # Structured training contracts - schemes in all but name.
+  - trainee accountant
+  - aca trainee
+  - acca trainee
+  - cima trainee
+  - actuarial trainee
+  - trainee solicitor
+  # --- internships ---------------------------------------------------------
   - internship
   - summer internship
   - winter internship
@@ -57,102 +61,31 @@ terms:
   - vacation scheme
   - work experience programme
   - undergraduate internship
-  # --- placements ---------------------------------------------------------
+  # --- placements ----------------------------------------------------------
   - industrial placement
   - placement year
   - year in industry
   - sandwich placement
   - 12 month placement
+  - 13 month placement
   - undergraduate placement
   - student placement
   - placement student
   - industrial trainee
-  # --- finance and professional services ----------------------------------
-  - trainee accountant
-  - graduate accountant
-  - accounting graduate
-  - audit graduate
-  - graduate auditor
-  - tax graduate
-  - assurance graduate
-  - advisory graduate
-  - actuarial graduate
-  - graduate actuary
-  - finance graduate
-  - graduate finance analyst
-  - corporate finance graduate
-  - investment banking analyst
-  - asset management graduate
-  - graduate risk analyst
-  - compliance graduate
-  - treasury graduate
-  - insurance graduate
-  - underwriting graduate
-  - aca trainee
-  - acca trainee
-  - cima trainee
-  # --- consulting and strategy --------------------------------------------
-  - consulting graduate
-  - strategy graduate
-  - graduate business analyst
-  - graduate analyst consulting
-  # --- marketing and communications ---------------------------------------
-  - marketing graduate
-  - graduate marketing
-  - digital marketing graduate
-  - brand graduate
-  - communications graduate
-  - pr graduate
-  - content graduate
-  - social media graduate
-  - graduate copywriter
-  - media graduate
-  # --- sales and commercial ------------------------------------------------
-  - sales graduate
-  - graduate sales
-  - commercial graduate
-  - business development graduate
-  - account management graduate
-  - graduate recruitment consultant
-  # --- data, operations, supply chain --------------------------------------
-  - data graduate
-  - graduate data analyst
-  - analytics graduate
-  - operations graduate
-  - graduate operations analyst
-  - supply chain graduate
-  - procurement graduate
-  - logistics graduate
-  - project management graduate
-  # --- people, retail, other ------------------------------------------------
-  - hr graduate
-  - people graduate
-  - talent graduate
-  - retail graduate
-  - buying graduate
-  - merchandising graduate
-  - fmcg graduate
-  # --- junior variants ------------------------------------------------------
-  - junior marketing
-  - junior finance
-  - junior analyst
-  - junior consultant
 
 # Only these get an extra per-city pass. The full list above already runs
 # nationally, so this is just for roles that rank too low to surface there.
 cityTerms:
   - graduate scheme
   - graduate programme
+  - graduate trainee
   - internship
   - summer internship
   - industrial placement
   - placement year
+  - year in industry
   - trainee accountant
-  - marketing graduate
-  - finance graduate
-  - sales graduate
-  - data graduate
-  - business development graduate
+  - vacation scheme
 
 # ALL = search the whole UK, several pages deep.
 locations:

@@ -11,20 +11,20 @@
 <body>
 
 <header class="topbar">
-  <div class="brand">
-    <span class="logo">🎯</span>
-    <div>
-      <h1>Job Radar</h1>
-      <p class="tagline">Graduate schemes, internships, placements &amp; local work — one page.</p>
-    </div>
-  </div>
   <div class="stats" id="stats" aria-live="polite">
     <span class="stat"><strong id="stat-count">—</strong> live roles</span>
-    <span class="stat"><strong id="stat-updated">—</strong></span>
+    <span class="stat stat-quiet" id="stat-updated">—</span>
   </div>
+  <button class="btn btn-sm btn-quiet" id="search-kit-top">🔍 LinkedIn searches</button>
 </header>
 
 <main class="layout">
+
+  <!-- Phone-only: the controls collapse behind this so jobs come first. -->
+  <button class="panel-toggle" id="panel-toggle" aria-expanded="false" aria-controls="sidebar">
+    <span class="pt-label">Your CV &amp; filters</span>
+    <span class="pt-state" id="pt-state">Show</span>
+  </button>
 
   <!-- ------------------------------------------------ sidebar -->
   <aside class="panel" id="sidebar">
@@ -121,9 +121,9 @@
 
     <nav class="streams" id="streams" aria-label="Kind of work">
       <div class="seg" role="group">
-        <button class="stream is-on" data-stream="early">Early careers <span class="n" id="s-early">0</span></button>
-        <button class="stream" data-stream="grad-all">All graduate <span class="n" id="s-grad-all">0</span></button>
-        <button class="stream" data-stream="local">Local &amp; part-time <span class="n" id="s-local">0</span></button>
+        <button class="stream is-on" data-stream="early"><span class="lbl-long">Early careers</span><span class="lbl-short">Early</span> <span class="n" id="s-early">0</span></button>
+        <button class="stream" data-stream="grad-all"><span class="lbl-long">All graduate</span><span class="lbl-short">Graduate</span> <span class="n" id="s-grad-all">0</span></button>
+        <button class="stream" data-stream="local"><span class="lbl-long">Local &amp; part-time</span><span class="lbl-short">Local</span> <span class="n" id="s-local">0</span></button>
       </div>
     </nav>
 

@@ -250,7 +250,7 @@
           ${job.salary
             ? `<span class="badge badge-pay">${esc(job.salary)}</span>`
             : '<span class="badge badge-nopay">Pay not stated</span>'}
-          ${job.commission ? `<span class="badge badge-comm">${esc(job.commission)}</span>` : ''}
+          ${job.commission ? `<span class="badge badge-comm" title="${esc(commissionHelp(job.commission))}">${esc(job.commission)}</span>` : ''}
           ${job.duration ? `<span class="badge badge-len" title="How long the role lasts">⏱ ${esc(job.duration)}</span>` : ''}
         </p>
         <h3><a href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">${esc(job.title)}</a></h3>
@@ -262,7 +262,23 @@
         </p>
         ${reasons.length ? `<p class="why"><span class="why-lbl">matches</span>${
           reasons.map(r => `<span class="why-chip">${esc(r)}</span>`).join('')}</p>` : ''}
-        <p class="summary">${esc(job.summary || '')}</p>
+        ${(job.summary || (job.does || []).length || (job.wants || []).length) ? `
+        <details class="brief">
+          <summary class="brief-toggle">What the role involves</summary>
+          <div class="brief-body">
+            ${job.summary ? `<p class="brief-gist">${esc(job.summary)}</p>` : ''}
+            ${(job.does || []).length ? `
+              <p class="brief-h">What you'd be doing</p>
+              <ul>${job.does.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+            ${(job.wants || []).length ? `
+              <p class="brief-h">What they're asking for</p>
+              <ul>${job.wants.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+            <p class="brief-more">
+              <a href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">
+                Read the full advert on ${esc(job.source)} ↗</a>
+            </p>
+          </div>
+        </details>` : ''}
         <p class="tags">
           ${(job.cats || []).map(c => `<span class="tag">${esc(catLabel(c))}</span>`).join('')}
           <span class="tag tag-src">via ${esc(job.source)}</span>
@@ -276,6 +292,19 @@
         </div>
       </div>`;
     return el;
+  }
+
+  // OTE is jargon. Say what it means on hover rather than assuming.
+  function commissionHelp(text) {
+    if (/OTE/i.test(text)) {
+      return 'On-target earnings: base pay plus the commission you would earn '
+        + 'if you hit 100% of target. Not guaranteed - the base salary is.';
+    }
+    if (/uncapped/i.test(text)) {
+      return 'Commission with no upper limit, but no guaranteed amount either.';
+    }
+    if (/tips/i.test(text)) return 'Tips on top of the hourly rate.';
+    return 'Bonus or commission on top of base pay, not guaranteed.';
   }
 
   function catLabel(key) {
@@ -615,6 +644,17 @@
     });
 
     $('#search-kit').addEventListener('click', openSearchKit);
+    $('#search-kit-top').addEventListener('click', openSearchKit);
+
+    // On a phone the controls start collapsed so the jobs are the first thing
+    // you see; on a laptop the panel is always open and this button is hidden.
+    const toggle = $('#panel-toggle');
+    toggle.addEventListener('click', () => {
+      const open = document.body.classList.toggle('panel-open');
+      toggle.setAttribute('aria-expanded', String(open));
+      $('#pt-state').textContent = open ? 'Hide' : 'Show';
+      if (!open) toggle.scrollIntoView({ block: 'nearest' });
+    });
 
     $('#reset').addEventListener('click', () => {
       if (!confirm('Clear your CV, keywords, filters and saved roles?')) return;

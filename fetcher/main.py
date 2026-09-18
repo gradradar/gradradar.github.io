@@ -18,6 +18,7 @@ from .duration import find_duration
 from .http import FetchError
 from .models import RawJob
 from .salary import annual_equivalent, find_commission, find_salary, format_salary
+from .summarise import highlights, role_gist
 from .sources import aggregators, ats, boards, workday
 from .text import keywords, normalise_ws, summarise
 from .uk import is_remote, is_uk
@@ -255,7 +256,10 @@ def to_record(job: RawJob, *, stream: str, role_type: str, cats: list[str]) -> d
         "team": (job.extra.get("team") or "")[:60],
         # Pre-extracted so the browser does no heavy text processing.
         "kw": " ".join(keywords(f"{job.title} {job.title} {body}")),
-        "summary": summarise(body),
+        # A readable digest instead of the first 400 characters of blurb.
+        "summary": role_gist(body, job.title) or summarise(body, 240),
+        "does": highlights(body)["does"],
+        "wants": highlights(body)["wants"],
     }
 
 

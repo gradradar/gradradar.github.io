@@ -1,13 +1,21 @@
-# 🎯 Grad Radar
+# 🎯 Job Radar
 
-UK graduate schemes, internships and placements from dozens of employer job
-boards, pulled into one page and ranked against your CV.
+UK graduate schemes, internships, placements and local part-time work from
+dozens of job boards, pulled into one page and ranked against your CV.
 
-- **One list, not ten tabs.** A bot refreshes the jobs every morning.
+- **Five tabs, not ten browser windows.** Graduate schemes, internships,
+  placements, all graduate roles, and local/hourly work — each with its own tab.
+- **One list.** A bot refreshes every source each morning.
 - **Ranked to you.** Drop in your CV and roles are sorted by how well they fit.
 - **Not limited to your CV.** Add your own keywords to steer it somewhere else —
   useful when what you've done isn't what you want to do next.
-- **Shows the clock.** Every role displays when it opened and when it closes.
+- **Shows the clock.** Every role displays when it opened and when it closes,
+  with the urgent ones flagged in red.
+- **Shows the money.** Pay is pulled from structured fields where a board
+  provides one and parsed out of the advert text where it doesn't. Commission
+  and OTE are shown separately, so a £24k sales job can't masquerade as £60k.
+- **Tailors your application.** Pick any role and it compares the advert against
+  your CV: what to lead with, what's missing, and a cover-letter scaffold.
 - **Private.** Your CV is parsed in your browser and stored on your device only.
   It is never uploaded, and the site has no accounts, no backend and no tracking.
 
@@ -39,10 +47,26 @@ and complete.
 |---|---|
 | Greenhouse | 34 |
 | Ashby | 23 |
+| Workday | 13 |
 | SmartRecruiters | 8 |
 | Lever | 5 |
 | Recruitee | 2 |
 | Workable | 1 |
+
+**Workday matters most.** It runs the large graduate schemes — PwC, Santander,
+NatWest, Aviva, GSK, AstraZeneca, Diageo, Accenture — and it is the only source
+that publishes a real application deadline, so those roles arrive with genuine
+closing dates rather than ones parsed out of prose. The API needs an exact
+tenant + data-centre + site triple, none of which are documented, so they are
+brute-forced:
+
+```bash
+python3 tools/validate_workday.py --write
+```
+
+**Keyless aggregators.** Arbeitnow, Remotive and Jobicy need no key either. They
+skew remote and tech-heavy so most of what they return is filtered out, but they
+cost nothing to include.
 
 `config/employers.yml` holds the verified list. Regenerate it any time with:
 
@@ -58,9 +82,13 @@ employers that don't use a modern ATS (Big Four, banks, retailers). Both are
 free and take a couple of minutes to set up — see below. Without them everything
 still runs, you just get fewer roles.
 
-> LinkedIn and Indeed are deliberately not used. Both block automated access and
-> scraping them breaks constantly; the official APIs above cover more graduate
-> roles and keep working.
+### Why there's no LinkedIn scraper
+
+LinkedIn blocks datacentre IPs aggressively, so a scraper would fail from GitHub
+Actions within days, and running one risks the account of whoever it's logged in
+as — a bad trade while you're actively applying. There is no free public jobs
+API. Instead every role carries a **Search on LinkedIn** link that opens their
+own search, signed in as you. Indeed is excluded for the same reasons.
 
 ## Setup
 
@@ -68,7 +96,7 @@ still runs, you just get fewer roles.
 
 ```bash
 git init && git add . && git commit -m "Grad Radar"
-gh repo create grad-radar --public --source=. --push
+gh repo create job-radar --public --source=. --push
 ```
 
 Then in the repo: **Settings → Pages → Source: GitHub Actions**.
@@ -135,17 +163,48 @@ fiddlier than it sounds:
 Closing dates come from Reed directly, and are otherwise parsed out of the
 advert text ("applications close on 30 November", "rolling basis").
 
+## The local & part-time tab
+
+A second stream for hourly work — bar, retail, warehouse, care, admin, cleaning,
+childcare. It bypasses the graduate filter entirely and is classified by trade
+instead, with hourly pay and shift pattern (part-time, weekends, evenings) shown
+on each card.
+
+**This tab needs the Adzuna or Reed key to do anything.** Employer ATS boards
+carry graduate schemes, not pub and shop vacancies, so without a key it stays
+empty. Configure the searches in `config/searches-local.yml` — it is
+location-first, since hourly work is only useful if it's commutable.
+
+## Tailoring your application
+
+Click **Tailor CV** on any role:
+
+- **Already in your CV** — terms the advert and your CV share. Move these into
+  the top third of the page.
+- **Missing from your CV** — what the advert stresses that you don't mention,
+  filtered down to transferable skills (job-title words, the employer's own
+  name, and one-off company jargon are all excluded).
+- **Cover letter scaffold** — four prompts to fill in yourself.
+
+This runs entirely in the browser with no API key and no AI writing. That is
+deliberate: a generated letter reads like every other generated letter, and
+graduate recruiters see hundreds. The scaffold tells you what to say; the words
+have to be yours.
+
 ## Layout
 
 ```
 fetcher/          the daily job collector (stdlib only)
-  sources/ats.py      Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee
-  sources/boards.py   Adzuna, Reed
-  classify.py         is this actually a grad role, and in what field?
-  deadline.py         digs closing dates out of advert text
-  uk.py               UK-only filtering
+  sources/ats.py          Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee
+  sources/workday.py      Workday career sites - the big graduate schemes
+  sources/boards.py       Adzuna, Reed
+  sources/aggregators.py  Arbeitnow, Remotive, Jobicy
+  classify.py             grad role or local work, and in what field?
+  deadline.py             digs closing dates out of advert text
+  salary.py               pay and commission, structured or from prose
+  uk.py                   UK-only filtering
 site/             the static site published to GitHub Pages
-tools/            employer-slug validator
+tools/            employer-slug and Workday-site validators
 config/           search terms and verified employer boards
 ```
 

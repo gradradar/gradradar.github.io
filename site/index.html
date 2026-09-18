@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Grad Radar — graduate jobs, matched to you</title>
-<meta name="description" content="UK graduate schemes, internships and placements from every employer board in one place, ranked against your CV.">
+<title>Job Radar — graduate, placement &amp; local jobs, matched to you</title>
+<meta name="description" content="UK graduate schemes, internships, placements and local part-time work from dozens of job boards in one place, ranked against your CV.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎯</text></svg>">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -14,8 +14,8 @@
   <div class="brand">
     <span class="logo">🎯</span>
     <div>
-      <h1>Grad Radar</h1>
-      <p class="tagline">UK graduate schemes, internships &amp; placements — in one place.</p>
+      <h1>Job Radar</h1>
+      <p class="tagline">Graduate schemes, internships, placements &amp; local work — one page.</p>
     </div>
   </div>
   <div class="stats" id="stats" aria-live="polite">
@@ -78,19 +78,27 @@
     <section class="block">
       <h2>3. Narrow it down</h2>
 
-      <label class="lbl">Role type</label>
-      <div class="checks" id="filter-type"></div>
-
       <label class="lbl">Field</label>
       <div class="checks" id="filter-cat"></div>
 
       <label class="lbl" for="filter-loc">Location contains</label>
-      <input class="kwinput" id="filter-loc" placeholder="e.g. London, Manchester">
+      <input class="kwinput" id="filter-loc" placeholder="e.g. Nottingham, London">
 
       <div class="toggles">
         <label><input type="checkbox" id="filter-remote"> Remote only</label>
-        <label><input type="checkbox" id="filter-salary"> Has a salary listed</label>
+        <label><input type="checkbox" id="filter-salary"> Only show roles with pay listed</label>
+        <label><input type="checkbox" id="filter-deadline"> Only with a closing date</label>
       </div>
+
+      <label class="lbl" for="filter-pay">Minimum pay</label>
+      <select id="filter-pay">
+        <option value="0">Any</option>
+        <option value="18000">£18,000 / £9.20 an hour</option>
+        <option value="22000">£22,000 / £11.30 an hour</option>
+        <option value="25000">£25,000 / £12.80 an hour</option>
+        <option value="30000">£30,000 / £15.40 an hour</option>
+        <option value="35000">£35,000+</option>
+      </select>
 
       <label class="lbl" for="filter-age">Posted within</label>
       <select id="filter-age">
@@ -106,6 +114,15 @@
 
   <!-- ------------------------------------------------ results -->
   <section class="results">
+
+    <nav class="streams" id="streams" aria-label="Kind of work">
+      <button class="stream is-on" data-stream="grad-all">All graduate <span class="n" id="s-grad-all">0</span></button>
+      <button class="stream" data-stream="graduate-scheme">Grad schemes <span class="n" id="s-graduate-scheme">0</span></button>
+      <button class="stream" data-stream="internship">Internships <span class="n" id="s-internship">0</span></button>
+      <button class="stream" data-stream="placement">Placements <span class="n" id="s-placement">0</span></button>
+      <button class="stream" data-stream="local">Local &amp; part-time <span class="n" id="s-local">0</span></button>
+    </nav>
+
     <nav class="tabs" id="tabs">
       <button class="tab is-on" data-view="all">All <span class="n" id="n-all">0</span></button>
       <button class="tab" data-view="saved">Saved <span class="n" id="n-saved">0</span></button>
@@ -115,27 +132,39 @@
       <label class="sortrow">Sort
         <select id="sort">
           <option value="match">Best match</option>
-          <option value="date">Newest</option>
+          <option value="date">Most recent</option>
           <option value="closing">Closing soonest</option>
-          <option value="salary">Salary</option>
+          <option value="salary">Highest paid</option>
         </select>
       </label>
     </nav>
 
+    <p class="stream-note" id="stream-note" hidden></p>
     <div id="list" class="list"></div>
     <div id="empty" class="empty" hidden></div>
   </section>
 </main>
 
+<div class="modal" id="tailor" hidden role="dialog" aria-modal="true" aria-labelledby="tailor-title">
+  <div class="modal-back" data-close></div>
+  <div class="modal-box">
+    <button class="modal-x" data-close aria-label="Close">×</button>
+    <h2 id="tailor-title">Tailor your application</h2>
+    <p class="modal-sub" id="tailor-sub"></p>
+    <div id="tailor-body"></div>
+  </div>
+</div>
+
 <footer class="foot">
   <span id="foot-sources"></span>
-  <span>Built for grads who are sick of ten open tabs.</span>
+  <span>Built for people sick of ten open tabs.</span>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="js/cv.js"></script>
 <script src="js/match.js"></script>
+<script src="js/tailor.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

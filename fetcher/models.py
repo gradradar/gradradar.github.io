@@ -24,7 +24,7 @@ class RawJob:
 
     def key(self) -> str:
         """Stable id from the things that actually identify a posting."""
-        norm = f"{_slim(self.title)}|{_slim(self.company)}|{_slim(self.location)}"
+        norm = f"{_slim(self.title)}|{_slim(self.company)}|{slim_location(self.location)}"
         return hashlib.sha1(norm.encode()).hexdigest()[:14]
 
 
@@ -33,6 +33,21 @@ def _slim(value: str) -> str:
     value = re.sub(r"\(.*?\)", " ", value)
     value = re.sub(r"[^a-z0-9]+", " ", value)
     return " ".join(value.split())
+
+
+# Boards spell the same place a dozen ways: "London", "London, England",
+# "London, England, United Kingdom", "UK - London".
+_GEO_NOISE = re.compile(
+    r"\b(england|scotland|wales|northern ireland|united kingdom|uk|gb|"
+    r"great britain|remote|hybrid|on[- ]site)\b", re.I)
+
+
+def slim_location(location: str) -> str:
+    """Reduce a location string to the town, for comparison purposes."""
+    value = _GEO_NOISE.sub(" ", location or "")
+    value = re.sub(r"[^a-zA-Z0-9]+", " ", value).strip().lower()
+    # Multi-site postings list several towns; the first is enough to compare.
+    return value.split(" and ")[0].strip()
 
 
 def clean_title(title: str) -> str:

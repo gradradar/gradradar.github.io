@@ -79,7 +79,7 @@ const Match = (() => {
       // Terms in more than ~45% of adverts are noise; damp them hard.
       idf.set(term, Math.max(0, Math.log(n / (1 + count)) - 0.15));
     }
-    return { idf, n };
+    return { idf, n, df };
   }
 
   function idfOf(model, term) {
@@ -232,5 +232,5 @@ const Match = (() => {
     return out;
   }
 
-  return { rank, tokenise };
+  return { rank, tokenise, buildIdf, profileFromCv, jobVector, idfOf, SIGNAL };
 })();

@@ -9,20 +9,37 @@
     ['internship', 'Internship'],
     ['placement', 'Placement / year in industry'],
     ['entry-level', 'Entry level'],
+    ['local', 'Local / hourly'],
   ];
+  const STREAMS = ['grad-all', 'graduate-scheme', 'internship', 'placement', 'local'];
+  const STREAM_NOTE = {
+    'graduate-scheme': 'Structured graduate programmes with a defined intake — these usually have hard deadlines, so check the closing dates.',
+    'internship': 'Summer internships, spring weeks and insight programmes.',
+    'placement': 'Year-in-industry and sandwich placements, normally taken between second and final year.',
+    'local': 'Hourly and part-time work — bar, retail, warehouse, care and admin. Pay is shown per hour where the advert states it.',
+  };
   const CATS = [
     ['finance', 'Finance'], ['consulting', 'Consulting'], ['marketing', 'Marketing'],
     ['sales', 'Sales & BD'], ['operations', 'Operations'], ['people', 'HR & People'],
     ['data-tech', 'Data & Tech'],
   ];
+  // Shown instead of CATS when the local stream is active.
+  const LOCAL_CATS = [
+    ['hospitality', 'Bar & hospitality'], ['retail', 'Retail'],
+    ['warehouse', 'Warehouse & driving'], ['care', 'Care & support'],
+    ['admin', 'Admin & customer service'], ['cleaning', 'Cleaning'],
+    ['childcare', 'Childcare & schools'], ['events', 'Events'],
+    ['security', 'Security'],
+  ];
 
   const state = {
-    jobs: [], meta: {}, view: 'all', sort: 'match',
+    jobs: [], meta: {}, view: 'all', sort: 'match', stream: 'grad-all',
     cvText: '', cvName: '',
     boost: [], must: [], not: [],
     cvWeight: 0.6,
-    types: new Set(), cats: new Set(),
-    loc: '', remote: false, salaryOnly: false, maxAge: 30,
+    cats: new Set(), localCats: new Set(),
+    loc: '', remote: false, salaryOnly: false, deadlineOnly: false,
+    minPay: 0, maxAge: 30,
     saved: {}, applied: {}, hidden: {},
   };
 
@@ -30,14 +47,14 @@
   function save() {
     const { jobs, meta, ...rest } = state;
     localStorage.setItem(STORE, JSON.stringify({
-      ...rest, types: [...state.types], cats: [...state.cats],
+      ...rest, cats: [...state.cats], localCats: [...state.localCats],
     }));
   }
   function load() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORE) || '{}');
       Object.assign(state, raw, {
-        types: new Set(raw.types || []), cats: new Set(raw.cats || []),
+        cats: new Set(raw.cats || []), localCats: new Set(raw.localCats || []),
         saved: raw.saved || {}, applied: raw.applied || {}, hidden: raw.hidden || {},
       });
     } catch { /* corrupt or cleared storage: start fresh */ }
@@ -84,16 +101,28 @@
   }
 
   /* ------------------------------------------------------------ filtering */
+  function inStream(job) {
+    if (state.stream === 'local') return job.stream === 'local';
+    if (job.stream !== 'graduate') return false;
+    if (state.stream === 'grad-all') return true;
+    return job.type === state.stream;
+  }
+
   function passesFilters(job) {
-    if (state.types.size && !state.types.has(job.type)) return false;
-    if (state.cats.size && !(job.cats || []).some(c => state.cats.has(c))) return false;
+    if (!inStream(job)) return false;
+    const catSet = state.stream === 'local' ? state.localCats : state.cats;
+    if (catSet.size && !(job.cats || []).some(c => catSet.has(c))) return false;
     if (state.loc) {
       const want = state.loc.toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
-      const where = (job.location || '').toLowerCase();
+      // Multi-location roles carry every town, so match against all of them.
+      const where = ((job.locs && job.locs.length ? job.locs : [job.location])
+        .join(' | ')).toLowerCase();
       if (want.length && !want.some(w => where.includes(w))) return false;
     }
     if (state.remote && !job.remote) return false;
     if (state.salaryOnly && !job.salary) return false;
+    if (state.deadlineOnly && !job.closes) return false;
+    if (state.minPay && (job.salaryAnnual || 0) < state.minPay) return false;
     if (state.maxAge) {
       const d = daysBetween(job.posted);
       if (d !== null && -d > state.maxAge) return false;
@@ -112,13 +141,30 @@
     });
 
     const buckets = { all: [], saved: [], applied: [], hidden: [] };
+    const streamCounts = Object.fromEntries(STREAMS.map(k => [k, 0]));
     for (const entry of ranked) {
-      const id = entry.job.id;
+      const job = entry.job, id = job.id;
+      // Stream tallies ignore the current stream but respect everything else.
+      if (!state.hidden[id]) {
+        if (job.stream === 'local') streamCounts['local']++;
+        else {
+          streamCounts['grad-all']++;
+          if (streamCounts[job.type] !== undefined) streamCounts[job.type]++;
+        }
+      }
       if (state.hidden[id]) { buckets.hidden.push(entry); continue; }
       if (state.applied[id]) buckets.applied.push(entry);
       if (state.saved[id]) buckets.saved.push(entry);
-      if (passesFilters(entry.job)) buckets.all.push(entry);
+      if (passesFilters(job)) buckets.all.push(entry);
     }
+    for (const key of STREAMS) {
+      const el = document.getElementById('s-' + key);
+      if (el) el.textContent = streamCounts[key];
+    }
+    const note = $('#stream-note');
+    if (STREAM_NOTE[state.stream]) {
+      note.hidden = false; note.textContent = STREAM_NOTE[state.stream];
+    } else { note.hidden = true; }
 
     $('#n-all').textContent = buckets.all.length;
     $('#n-saved').textContent = buckets.saved.length;
@@ -129,8 +175,7 @@
     if (state.sort === 'date') {
       list.sort((a, b) => (b.job.posted || '').localeCompare(a.job.posted || ''));
     } else if (state.sort === 'salary') {
-      const amt = j => parseInt((j.salary || '').replace(/[^\d]/g, '') || '0', 10);
-      list.sort((a, b) => amt(b.job) - amt(a.job));
+      list.sort((a, b) => (b.job.salaryAnnual || 0) - (a.job.salaryAnnual || 0));
     } else if (state.sort === 'closing') {
       const key = j => j.closes ? Date.parse(j.closes) : Infinity;
       list.sort((a, b) => key(a.job) - key(b.job));
@@ -159,17 +204,39 @@
     return '<p>No roles match those filters. Try widening the date range or clearing a keyword.</p>';
   }
 
+  // Role types worth calling out loudly - these are what people filter for.
+  const BADGE = {
+    'graduate-scheme': ['Graduate scheme', 'badge-scheme'],
+    'internship': ['Internship', 'badge-intern'],
+    'placement': ['Placement', 'badge-placement'],
+    'graduate': ['Graduate role', 'badge-grad'],
+    'entry-level': ['Entry level', 'badge-entry'],
+    'local': ['Local / hourly', 'badge-local'],
+  };
+
+  function linkedInSearch(job) {
+    const params = new URLSearchParams({
+      keywords: job.title,
+      location: job.location || 'United Kingdom',
+    });
+    return `https://www.linkedin.com/jobs/search/?${params}`;
+  }
+
   function card({ job, score, reasons, scored }) {
     const el = document.createElement('article');
     el.className = 'card';
 
     const closes = closesInfo(job);
-    const typeLabel = (TYPES.find(t => t[0] === job.type) || [, job.type])[1];
+    const [badgeLabel, badgeClass] = BADGE[job.type] || ['Role', 'badge-entry'];
 
     const meta = [];
-    if (job.location) meta.push(esc(job.location));
-    if (job.salary) meta.push(`<span class="salary">${esc(job.salary)}</span>`);
+    if (job.location) {
+      meta.push(job.locationCount > 2
+        ? `<span title="${esc((job.locs || []).join(', '))}">${esc(job.location)}</span>`
+        : esc(job.location));
+    }
     if (job.remote) meta.push('Remote');
+    if (job.shift) meta.push(esc(job.shift));
 
     el.innerHTML = `
       <div class="card-score ${scored ? '' : 'is-quiet'}"
@@ -178,6 +245,13 @@
         <span class="score-pc">${scored ? '% match' : 'no CV'}</span>
       </div>
       <div class="card-body">
+        <p class="badges">
+          <span class="badge ${badgeClass}">${esc(badgeLabel)}</span>
+          ${job.salary
+            ? `<span class="badge badge-pay">${esc(job.salary)}</span>`
+            : '<span class="badge badge-nopay">Pay not stated</span>'}
+          ${job.commission ? `<span class="badge badge-comm">${esc(job.commission)}</span>` : ''}
+        </p>
         <h3><a href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">${esc(job.title)}</a></h3>
         <p class="company">${esc(job.company)}</p>
         <p class="meta">${meta.join('<span class="dot">·</span>')}</p>
@@ -189,19 +263,25 @@
           reasons.map(r => `<span class="why-chip">${esc(r)}</span>`).join('')}</p>` : ''}
         <p class="summary">${esc(job.summary || '')}</p>
         <p class="tags">
-          <span class="tag tag-type">${esc(typeLabel)}</span>
-          ${(job.cats || []).map(c => `<span class="tag">${esc(
-            (CATS.find(x => x[0] === c) || [, c])[1])}</span>`).join('')}
+          ${(job.cats || []).map(c => `<span class="tag">${esc(catLabel(c))}</span>`).join('')}
           <span class="tag tag-src">via ${esc(job.source)}</span>
         </p>
         <div class="actions">
           <a class="btn btn-primary btn-sm" href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">Open role ↗</a>
           <button class="btn btn-sm ${state.saved[job.id] ? 'is-on' : ''}" data-act="save" data-id="${job.id}">${state.saved[job.id] ? '★ Saved' : '☆ Save'}</button>
           <button class="btn btn-sm ${state.applied[job.id] ? 'is-on' : ''}" data-act="applied" data-id="${job.id}">${state.applied[job.id] ? '✓ Applied' : 'Mark applied'}</button>
+          <button class="btn btn-sm btn-tailor" data-act="tailor" data-id="${job.id}">✎ Tailor CV</button>
+          <a class="btn btn-sm btn-quiet" href="${esc(linkedInSearch(job))}" target="_blank" rel="noopener noreferrer"
+             title="Search LinkedIn for this role">in Search ↗</a>
           <button class="btn btn-sm btn-quiet" data-act="hide" data-id="${job.id}">${state.hidden[job.id] ? 'Unhide' : 'Hide'}</button>
         </div>
       </div>`;
     return el;
+  }
+
+  function catLabel(key) {
+    const all = CATS.concat(LOCAL_CATS);
+    return (all.find(x => x[0] === key) || [, key])[1];
   }
 
   function esc(s) {
@@ -241,11 +321,13 @@
     host.innerHTML = items.map(([value, label]) =>
       `<label><input type="checkbox" value="${value}" ${state[setKey].has(value) ? 'checked' : ''}> ${esc(label)}</label>`
     ).join('');
-    host.addEventListener('change', e => {
-      const box = e.target;
-      if (box.checked) state[setKey].add(box.value); else state[setKey].delete(box.value);
-      save(); render();
-    });
+    host.dataset.setKey = setKey;
+  }
+
+  // The Field filter lists different options for graduate vs local work.
+  function refreshCatFilter() {
+    const local = state.stream === 'local';
+    renderChecks('#filter-cat', local ? LOCAL_CATS : CATS, local ? 'localCats' : 'cats');
   }
 
   /* --------------------------------------------------------------- CV bits */
@@ -284,6 +366,66 @@
     return 'Ignoring your CV completely — keywords only.';
   }
 
+  /* --------------------------------------------------------- tailor modal */
+  function openTailor(id) {
+    const job = state.jobs.find(j => j.id === id);
+    if (!job) return;
+    const model = Match.buildIdf(state.jobs);
+    const analysis = Tailor.analyse(job, state.cvText, model);
+    const letter = Tailor.coverLetter(job, analysis);
+
+    $('#tailor-sub').textContent = `${job.title} — ${job.company}`;
+    $('#tailor-body').innerHTML = `
+      ${analysis.hasCv ? '' : `<p class="warn-note">No CV loaded, so this is based
+        on the advert alone. Add your CV in the sidebar for a gap analysis.</p>`}
+
+      ${analysis.strengths.length ? `
+      <section class="tsec">
+        <h3>✓ Already in your CV — lead with these</h3>
+        <p class="tsec-hint">The advert and your CV both stress these. Move them into
+          the top third of the page so a six-second skim catches them.</p>
+        <p class="chipline">${analysis.strengths.map(t =>
+          `<span class="why-chip">${esc(t)}</span>`).join('')}</p>
+      </section>` : ''}
+
+      ${analysis.missing.length ? `
+      <section class="tsec">
+        <h3>⚠ In the advert, missing from your CV</h3>
+        <p class="tsec-hint">If you have done any of these — even in a society, a
+          part-time job or coursework — name them using the advert's own wording.
+          If you haven't, leave them off and address it in the cover letter.</p>
+        <p class="chipline">${analysis.missing.map(t =>
+          `<span class="gap-chip">${esc(t)}</span>`).join('')}</p>
+      </section>` : ''}
+
+      <section class="tsec">
+        <h3>✎ Cover letter scaffold</h3>
+        <p class="tsec-hint">Prompts, not a finished letter — a generated one reads
+          like everyone else's. Fill each bracket in your own words.</p>
+        <pre class="letter" id="letter">${esc(letter)}</pre>
+        <button class="btn btn-sm" id="copy-letter">Copy scaffold</button>
+      </section>
+
+      <section class="tsec">
+        <h3>General CV tips</h3>
+        <ul class="tips">${Tailor.CV_TIPS.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+      </section>`;
+
+    $('#tailor').hidden = false;
+    document.body.style.overflow = 'hidden';
+    const copy = $('#copy-letter');
+    if (copy) copy.addEventListener('click', () => {
+      navigator.clipboard.writeText(letter).then(
+        () => { copy.textContent = 'Copied ✓'; setTimeout(() => copy.textContent = 'Copy scaffold', 1800); },
+        () => { copy.textContent = 'Press Ctrl/Cmd+C'; });
+    });
+  }
+
+  function closeTailor() {
+    $('#tailor').hidden = true;
+    document.body.style.overflow = '';
+  }
+
   /* ----------------------------------------------------------------- init */
   function wire() {
     const zone = $('#dropzone'), fileInput = $('#cv-file');
@@ -318,8 +460,38 @@
     wireKeywordInput('#kw-boost', '#chips-boost', 'boost');
     wireKeywordInput('#kw-must', '#chips-must', 'must');
     wireKeywordInput('#kw-not', '#chips-not', 'not');
-    renderChecks('#filter-type', TYPES, 'types');
-    renderChecks('#filter-cat', CATS, 'cats');
+    refreshCatFilter();
+
+    // One delegated listener survives the Field filter being re-rendered.
+    $('#filter-cat').addEventListener('change', e => {
+      const box = e.target.closest('input[type=checkbox]');
+      if (!box) return;
+      const setKey = $('#filter-cat').dataset.setKey;
+      if (box.checked) state[setKey].add(box.value); else state[setKey].delete(box.value);
+      save(); render();
+    });
+
+    $('#streams').addEventListener('click', e => {
+      const btn = e.target.closest('.stream');
+      if (!btn) return;
+      state.stream = btn.dataset.stream;
+      [...document.querySelectorAll('.stream')].forEach(b => b.classList.toggle('is-on', b === btn));
+      // Local work is judged on trade and pay, not CV keyword overlap.
+      if (state.stream === 'local' && state.sort === 'match') state.sort = 'date';
+      if (state.stream !== 'local' && state.sort === 'date' && state.cvText) state.sort = 'match';
+      $('#sort').value = state.sort;
+      refreshCatFilter();
+      save(); render();
+    });
+
+    $('#filter-deadline').checked = state.deadlineOnly;
+    $('#filter-deadline').addEventListener('change', e => {
+      state.deadlineOnly = e.target.checked; save(); render();
+    });
+    $('#filter-pay').value = String(state.minPay);
+    $('#filter-pay').addEventListener('change', e => {
+      state.minPay = Number(e.target.value); save(); render();
+    });
 
     const slider = $('#cv-weight');
     slider.value = String(Math.round(state.cvWeight * 100));
@@ -365,10 +537,18 @@
       const btn = e.target.closest('button[data-act]');
       if (!btn) return;
       const { act, id } = btn.dataset;
+      if (act === 'tailor') { openTailor(id); return; }
       const map = { save: 'saved', applied: 'applied', hide: 'hidden' }[act];
       if (state[map][id]) delete state[map][id];
       else state[map][id] = new Date().toISOString().slice(0, 10);
       save(); render();
+    });
+
+    $('#tailor').addEventListener('click', e => {
+      if (e.target.closest('[data-close]')) closeTailor();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !$('#tailor').hidden) closeTailor();
     });
 
     $('#reset').addEventListener('click', () => {
@@ -376,6 +556,9 @@
       localStorage.removeItem(STORE);
       location.reload();
     });
+
+    [...document.querySelectorAll('.stream')].forEach(b =>
+      b.classList.toggle('is-on', b.dataset.stream === state.stream));
 
     if (state.cvText) {
       $('#cv-status').hidden = false;
@@ -400,8 +583,10 @@
         ? 'updated ' + new Date(data.generated).toLocaleDateString('en-GB',
             { day: 'numeric', month: 'short' })
         : '';
-      $('#foot-sources').textContent = Object.entries(data.sources || {})
-        .map(([s, n]) => `${s} ${n}`).join(' · ');
+      const srcCount = Object.keys(data.sources || {}).length;
+      $('#foot-sources').textContent =
+        `${srcCount} sources · ${data.withSalary || 0} with pay listed · ` +
+        `${data.withClosingDate || 0} with a closing date`;
     } catch (err) {
       $('#empty').hidden = false;
       $('#empty').innerHTML =

@@ -1,0 +1,40 @@
+# The second stream: local, hourly and part-time work.
+# Bar, retail, warehouse, care, admin - not graduate schemes.
+#
+# These searches rely on the Adzuna and Reed keys. Employer ATS boards do not
+# carry pub and shop vacancies, so without those keys this tab stays thin.
+
+terms:
+  - bar staff
+  - bartender
+  - waiting staff
+  - front of house
+  - barista
+  - kitchen assistant
+  - kitchen porter
+  - hospitality
+  - retail assistant
+  - sales assistant
+  - customer assistant
+  - shop assistant
+  - warehouse operative
+  - picker packer
+  - delivery driver
+  - care assistant
+  - support worker
+  - receptionist
+  - administrator
+  - customer service advisor
+  - cleaner
+  - nursery assistant
+  - teaching assistant
+  - event staff
+  - part time
+  - weekend work
+
+# Where to look for local work. Unlike the graduate stream this is
+# location-first - hourly work is only useful if it is commutable.
+locations:
+  - Nottingham
+  - Derby
+  - Leicester

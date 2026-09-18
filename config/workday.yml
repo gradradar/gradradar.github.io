@@ -1,0 +1,17 @@
+# Verified Workday career sites: tenant|datacentre|site
+# Regenerate with: python3 tools/validate_workday.py --write
+
+workday:
+  - pwc|wd3|Global_Experienced_Careers   # 4176 postings at last check
+  - accenture|wd103|accenturecareers   # 2000 postings at last check
+  - salesforce|wd12|External_Career_Site   # 1495 postings at last check
+  - astrazeneca|wd3|Careers   # 1198 postings at last check
+  - santander|wd3|santandercareers   # 1053 postings at last check
+  - gsk|wd5|gskcareers   # 690 postings at last check
+  - workday|wd5|workday   # 379 postings at last check
+  - diageo|wd3|Diageo_Careers   # 271 postings at last check
+  - shell|wd3|shellcareers   # 149 postings at last check
+  - aviva|wd1|External   # 137 postings at last check
+  - rbs|wd3|rbs   # 102 postings at last check
+  - kantar|wd3|kantar   # 56 postings at last check
+  - abrdn|wd3|abrdn   # 29 postings at last check

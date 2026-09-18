@@ -14,7 +14,7 @@ from ..text import strip_html
 
 # Adzuna's free/trial plan is capped per day. Blowing through it mid-run gives
 # silent partial data, so spend the budget deliberately instead.
-ADZUNA_DAILY_BUDGET = int(os.environ.get("ADZUNA_DAILY_BUDGET", "200"))
+ADZUNA_DAILY_BUDGET = int(os.environ.get("ADZUNA_DAILY_BUDGET", "1500"))
 _adzuna_calls = 0
 
 

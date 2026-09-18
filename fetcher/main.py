@@ -25,7 +25,7 @@ OUT_PATH = ROOT / "site" / "data" / "jobs.json"
 
 # Calls held back from the graduate pass so the local/hourly stream still gets
 # a share of a small Adzuna plan.
-ADZUNA_LOCAL_RESERVE = 60
+ADZUNA_LOCAL_RESERVE = 300
 
 # Prefer the employer's own board over an aggregator's copy of the same advert.
 SOURCE_RANK = {
@@ -168,7 +168,7 @@ def collect_boards(searches: dict[str, list[str]], log) -> list[RawJob]:
         log(f"  adzuna (budget {boards.ADZUNA_DAILY_BUDGET} calls):")
         # A UK-wide search already returns roles in every city, so do those
         # first and only spend what is left on per-city searches.
-        passes = [("", 2)] + [(loc, 1) for loc in locations if loc]
+        passes = [("", 4)] + [(loc, 1) for loc in locations if loc]
         for where, pages in passes:
             for term in terms:
                 if boards.adzuna_budget_left() <= ADZUNA_LOCAL_RESERVE:

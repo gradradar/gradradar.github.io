@@ -38,7 +38,8 @@
   ];
 
   const state = {
-    jobs: [], meta: {}, view: 'all', sort: 'match', stream: 'early',
+    jobs: [], meta: {}, localLoaded: false, localLoading: false,
+    view: 'all', sort: 'match', stream: 'early',
     cvText: '', cvName: '',
     boost: [], must: [], not: [],
     cvWeight: 0.6,
@@ -214,7 +215,12 @@
     }
     for (const key of STREAMS) {
       const el = document.getElementById('s-' + key);
-      if (el) el.textContent = streamCounts[key];
+      if (!el) continue;
+      if (key === 'local' && !state.localLoaded) {
+        el.textContent = (state.meta.streams && state.meta.streams.local) || 0;
+      } else {
+        el.textContent = streamCounts[key];
+      }
     }
     const earlyAll = document.getElementById('s-early-2');
     if (earlyAll) earlyAll.textContent = streamCounts['early'];
@@ -470,6 +476,31 @@
     $('#substreams').hidden = !inEarly;
   }
 
+  /* Local work lives in its own file so phones do not download thousands of
+     bar shifts to look at graduate schemes. Fetched the first time it's used. */
+  async function ensureLocal() {
+    if (state.localLoaded || state.localLoading) return;
+    state.localLoading = true;
+    const note = $('#stream-note');
+    note.hidden = false;
+    note.textContent = 'Loading local and part-time work…';
+    try {
+      const res = await fetch('data/local.json', { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const seen = new Set(state.jobs.map(j => j.id));
+      state.jobs = state.jobs.concat((data.jobs || []).filter(j => !seen.has(j.id)));
+      state.meta.places = Object.assign({}, data.places, state.meta.places);
+      state.localLoaded = true;
+    } catch (err) {
+      note.textContent = `Could not load local work (${err.message}).`;
+      return;
+    } finally {
+      state.localLoading = false;
+    }
+    render();
+  }
+
   /* --------------------------------------------------------- tailor modal */
   function openTailor(id) {
     const job = state.jobs.find(j => j.id === id);
@@ -627,6 +658,7 @@
       if (!btn) return;
       state.stream = btn.dataset.stream;
       syncStreamButtons();
+      if (state.stream === 'local') ensureLocal();
       // Local work is judged on trade and pay, not CV keyword overlap.
       if (state.stream === 'local' && state.sort === 'match') state.sort = 'date';
       if (state.stream !== 'local' && state.sort === 'date' && state.cvText) state.sort = 'match';
@@ -801,6 +833,7 @@
       return;
     }
     render();
+    if (state.stream === 'local') ensureLocal();
   }
 
   boot();

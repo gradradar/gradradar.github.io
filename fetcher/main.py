@@ -308,6 +308,35 @@ def process(raw: list[RawJob], *, stream: str, cutoff, rejected: dict) -> dict:
     return {k: v[2] for k, v in best.items()}
 
 
+def slim_local(record: dict) -> dict:
+    """Local work needs far less payload than a graduate role.
+
+    Nobody ranks bar shifts against a CV, so the extracted digest goes and the
+    keyword list shrinks to what the keyword filters actually need.
+    """
+    record.pop("does", None)
+    record.pop("wants", None)
+    record.pop("intake", None)
+    record.pop("opens", None)
+    record["kw"] = " ".join((record.get("kw") or "").split()[:28])
+    record["summary"] = (record.get("summary") or "")[:160]
+    return record
+
+
+def cap_per_town(records: list[dict], limit: int) -> list[dict]:
+    """Keep the newest N per town so one big city cannot swamp the file."""
+    seen: dict[str, int] = {}
+    out: list[dict] = []
+    for r in sorted(records, key=lambda x: (x["posted"] or ""), reverse=True):
+        town = r.get("town") or ""
+        count = seen.get(town, 0)
+        if count >= limit:
+            continue
+        seen[town] = count + 1
+        out.append(r)
+    return out
+
+
 def locate(records: list[dict]) -> dict[str, list[float]]:
     """Derive a town -> coordinates map from the records that carry them.
 
@@ -447,19 +476,26 @@ def build(args) -> dict:
     log(f"with coordinates: {with_coords} across {len(places)} towns "
         f"| coming soon: {coming_soon}")
 
-    return {
+    graduate_jobs = [r for r in records if r["stream"] == "graduate"]
+    local_jobs = [slim_local(r) for r in cap_per_town(
+        [r for r in records if r["stream"] == "local"], args.local_per_town)]
+
+    meta = {
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "count": len(records),
+        "count": len(graduate_jobs) + len(local_jobs),
         "sources": by_source,
         "types": by_type,
-        "streams": by_stream,
+        "streams": {"graduate": len(graduate_jobs), "local": len(local_jobs)},
         "withSalary": with_salary,
         "withClosingDate": with_closes,
         "withCoords": with_coords,
         "comingSoon": coming_soon,
         "places": places,
-        "jobs": records,
     }
+    # Two files: the page loads graduate roles immediately and only fetches the
+    # local ones if someone opens that tab. It keeps the phone payload small.
+    return {**meta, "jobs": graduate_jobs,
+            "_local": {**meta, "jobs": local_jobs}}
 
 
 def main() -> int:
@@ -471,15 +507,25 @@ def main() -> int:
     ap.add_argument("--no-workday", action="store_true", help="skip Workday sites")
     ap.add_argument("--no-aggregators", action="store_true", help="skip keyless aggregators")
     ap.add_argument("--no-local", action="store_true", help="skip the local/hourly stream")
+    ap.add_argument("--local-per-town", type=int, default=70,
+                    help="cap local postings kept per town")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
 
     payload = build(args)
+    local_payload = payload.pop("_local")
     args.out.parent.mkdir(parents=True, exist_ok=True)
+
     args.out.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False),
                         encoding="utf-8")
-    size = args.out.stat().st_size / 1024
-    print(f"wrote {args.out} - {payload['count']} jobs, {size:.0f} KB", file=sys.stderr)
+    local_path = args.out.with_name("local.json")
+    local_path.write_text(
+        json.dumps(local_payload, separators=(",", ":"), ensure_ascii=False),
+        encoding="utf-8")
+
+    for path, data in ((args.out, payload), (local_path, local_payload)):
+        print(f"wrote {path} - {len(data['jobs'])} jobs, "
+              f"{path.stat().st_size / 1024:.0f} KB", file=sys.stderr)
     return 0
 
 

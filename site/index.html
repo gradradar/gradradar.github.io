@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grad Radar — graduate jobs, matched to you</title>
+<meta name="description" content="UK graduate schemes, internships and placements from every employer board in one place, ranked against your CV.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🎯</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🎯</span>
+    <div>
+      <h1>Grad Radar</h1>
+      <p class="tagline">UK graduate schemes, internships &amp; placements — in one place.</p>
+    </div>
+  </div>
+  <div class="stats" id="stats" aria-live="polite">
+    <span class="stat"><strong id="stat-count">—</strong> live roles</span>
+    <span class="stat"><strong id="stat-updated">—</strong></span>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ------------------------------------------------ sidebar -->
+  <aside class="panel" id="sidebar">
+
+    <section class="block">
+      <h2>1. Your CV <span class="pill pill-quiet">optional</span></h2>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button"
+           aria-label="Upload your CV">
+        <input type="file" id="cv-file" accept=".pdf,.docx,.txt,.md" hidden>
+        <p class="dz-main">Drop your CV here</p>
+        <p class="dz-sub">PDF, Word or text · or click to browse</p>
+      </div>
+      <details class="paste">
+        <summary>or paste it as text</summary>
+        <textarea id="cv-paste" rows="5" placeholder="Paste your CV text…"></textarea>
+        <button class="btn btn-sm" id="cv-paste-save">Use this text</button>
+      </details>
+      <div class="cv-status" id="cv-status" hidden>
+        <span id="cv-name"></span>
+        <button class="linkbtn" id="cv-clear">remove</button>
+      </div>
+      <p class="privacy">🔒 Your CV is read in your browser and saved only on this
+        device. It is never uploaded anywhere.</p>
+    </section>
+
+    <section class="block">
+      <h2>2. What you actually want</h2>
+      <p class="hint">Your CV says what you've done. This says what you want next —
+        they don't have to match.</p>
+
+      <label class="lbl" for="kw-boost">Interested in</label>
+      <div class="chips" id="chips-boost"></div>
+      <input class="kwinput" id="kw-boost" placeholder="e.g. marketing, sustainability — press Enter">
+
+      <label class="lbl" for="kw-must">Must mention</label>
+      <div class="chips" id="chips-must"></div>
+      <input class="kwinput" id="kw-must" placeholder="Hide anything without these">
+
+      <label class="lbl" for="kw-not">Never show</label>
+      <div class="chips" id="chips-not"></div>
+      <input class="kwinput" id="kw-not" placeholder="e.g. insurance, cold calling">
+
+      <label class="slider-row">
+        <span>CV influence</span>
+        <input type="range" id="cv-weight" min="0" max="100" value="60">
+        <output id="cv-weight-out">60%</output>
+      </label>
+      <p class="hint" id="cv-weight-hint">Balanced between your CV and your keywords.</p>
+    </section>
+
+    <section class="block">
+      <h2>3. Narrow it down</h2>
+
+      <label class="lbl">Role type</label>
+      <div class="checks" id="filter-type"></div>
+
+      <label class="lbl">Field</label>
+      <div class="checks" id="filter-cat"></div>
+
+      <label class="lbl" for="filter-loc">Location contains</label>
+      <input class="kwinput" id="filter-loc" placeholder="e.g. London, Manchester">
+
+      <div class="toggles">
+        <label><input type="checkbox" id="filter-remote"> Remote only</label>
+        <label><input type="checkbox" id="filter-salary"> Has a salary listed</label>
+      </div>
+
+      <label class="lbl" for="filter-age">Posted within</label>
+      <select id="filter-age">
+        <option value="0">Any time</option>
+        <option value="7">Last week</option>
+        <option value="14">Last 2 weeks</option>
+        <option value="30" selected>Last month</option>
+      </select>
+
+      <button class="btn btn-ghost btn-block" id="reset">Reset everything</button>
+    </section>
+  </aside>
+
+  <!-- ------------------------------------------------ results -->
+  <section class="results">
+    <nav class="tabs" id="tabs">
+      <button class="tab is-on" data-view="all">All <span class="n" id="n-all">0</span></button>
+      <button class="tab" data-view="saved">Saved <span class="n" id="n-saved">0</span></button>
+      <button class="tab" data-view="applied">Applied <span class="n" id="n-applied">0</span></button>
+      <button class="tab" data-view="hidden">Hidden <span class="n" id="n-hidden">0</span></button>
+      <div class="spacer"></div>
+      <label class="sortrow">Sort
+        <select id="sort">
+          <option value="match">Best match</option>
+          <option value="date">Newest</option>
+          <option value="closing">Closing soonest</option>
+          <option value="salary">Salary</option>
+        </select>
+      </label>
+    </nav>
+
+    <div id="list" class="list"></div>
+    <div id="empty" class="empty" hidden></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span id="foot-sources"></span>
+  <span>Built for grads who are sick of ten open tabs.</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="js/cv.js"></script>
+<script src="js/match.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

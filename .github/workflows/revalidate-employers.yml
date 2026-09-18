@@ -1,0 +1,29 @@
+name: Re-check employer boards
+
+# Company slugs rot: firms switch ATS, boards get renamed. Run this by hand
+# every month or two, then review the diff before merging it.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 tools/validate_employers.py --write
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/revalidate-employers
+          title: 'chore: refresh verified employer boards'
+          body: |
+            Automated re-check of every candidate company slug against the
+            keyless ATS APIs. Review which boards were added or dropped before
+            merging.
+          commit-message: 'chore: refresh verified employer boards'

@@ -1,0 +1,40 @@
+# What the daily bot searches Adzuna and Reed for.
+# Add or remove lines freely - one search term per line.
+
+terms:
+  - graduate scheme
+  - graduate programme
+  - graduate analyst
+  - graduate marketing
+  - graduate finance
+  - graduate sales
+  - graduate consultant
+  - graduate trainee
+  - trainee accountant
+  - summer internship
+  - internship
+  - industrial placement
+  - placement year
+  - junior marketing
+  - junior finance
+  - marketing executive
+  - marketing assistant
+  - finance assistant
+  - business analyst
+  - business development
+  - account executive
+  - sales executive
+  - data analyst
+  - operations analyst
+  - management trainee
+  - insight programme
+
+# ALL = search the whole UK. Add cities to pull extra local results.
+locations:
+  - ALL
+  - London
+  - Manchester
+  - Birmingham
+  - Leeds
+  - Bristol
+  - Edinburgh

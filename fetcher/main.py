@@ -23,6 +23,10 @@ from .uk import is_remote, is_uk
 
 OUT_PATH = ROOT / "site" / "data" / "jobs.json"
 
+# Calls held back from the graduate pass so the local/hourly stream still gets
+# a share of a small Adzuna plan.
+ADZUNA_LOCAL_RESERVE = 60
+
 # Prefer the employer's own board over an aggregator's copy of the same advert.
 SOURCE_RANK = {
     "greenhouse": 5, "lever": 5, "ashby": 5, "workable": 5,
@@ -161,17 +165,26 @@ def collect_boards(searches: dict[str, list[str]], log) -> list[RawJob]:
                  for loc in searches.get("locations", ["ALL"])]
 
     if boards.adzuna_enabled():
-        log("  adzuna:")
-        for term in terms:
-            for loc in locations:
+        log(f"  adzuna (budget {boards.ADZUNA_DAILY_BUDGET} calls):")
+        # A UK-wide search already returns roles in every city, so do those
+        # first and only spend what is left on per-city searches.
+        passes = [("", 2)] + [(loc, 1) for loc in locations if loc]
+        for where, pages in passes:
+            for term in terms:
+                if boards.adzuna_budget_left() <= ADZUNA_LOCAL_RESERVE:
+                    log("    graduate share spent - saving the rest for local work")
+                    break
                 try:
-                    found = boards.adzuna(term, where=loc)
+                    found = boards.adzuna(term, where=where, pages=pages)
                 except FetchError as exc:
-                    log(f"    {term} @ {loc or 'UK'}: {exc}")
+                    log(f"    {term} @ {where or 'UK'}: {exc}")
                     continue
                 jobs.extend(found)
                 if found:
-                    log(f"    {term:<24} @ {loc or 'UK':<12} {len(found):>3}")
+                    log(f"    {term:<24} @ {where or 'UK':<12} {len(found):>3}")
+            if boards.adzuna_budget_left() <= ADZUNA_LOCAL_RESERVE:
+                break
+        log(f"  adzuna used {boards.adzuna_calls_used()} calls")
     else:
         log("  adzuna: skipped (set ADZUNA_APP_ID / ADZUNA_APP_KEY)")
 

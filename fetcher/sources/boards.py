@@ -12,6 +12,20 @@ from ..http import FetchError, qs, request_json
 from ..models import RawJob, clean_title
 from ..text import strip_html
 
+# Adzuna's free/trial plan is capped per day. Blowing through it mid-run gives
+# silent partial data, so spend the budget deliberately instead.
+ADZUNA_DAILY_BUDGET = int(os.environ.get("ADZUNA_DAILY_BUDGET", "200"))
+_adzuna_calls = 0
+
+
+def adzuna_calls_used() -> int:
+    return _adzuna_calls
+
+
+def adzuna_budget_left() -> int:
+    return max(0, ADZUNA_DAILY_BUDGET - _adzuna_calls)
+
+
 ADZUNA_ID = os.environ.get("ADZUNA_APP_ID", "").strip()
 ADZUNA_KEY = os.environ.get("ADZUNA_APP_KEY", "").strip()
 REED_KEY = os.environ.get("REED_API_KEY", "").strip()
@@ -32,8 +46,12 @@ def adzuna(term: str, *, pages: int = 2, max_days_old: int = 45,
            where: str = "") -> list[RawJob]:
     if not adzuna_enabled():
         return []
+    global _adzuna_calls
     out: list[RawJob] = []
     for page in range(1, pages + 1):
+        if _adzuna_calls >= ADZUNA_DAILY_BUDGET:
+            break
+        _adzuna_calls += 1
         url = qs(f"https://api.adzuna.com/v1/api/jobs/gb/search/{page}", {
             "app_id": ADZUNA_ID,
             "app_key": ADZUNA_KEY,

@@ -11,8 +11,12 @@
     ['entry-level', 'Entry level'],
     ['local', 'Local / hourly'],
   ];
-  const STREAMS = ['grad-all', 'graduate-scheme', 'internship', 'placement', 'local'];
+  const STREAMS = ['early', 'grad-all', 'graduate-scheme', 'internship', 'placement', 'local'];
+  // The three types worth chasing: a structured scheme, an internship or a
+  // year in industry. Everything else is the "Everything graduate" tab.
+  const EARLY = ['graduate-scheme', 'internship', 'placement'];
   const STREAM_NOTE = {
+    'early': 'Structured graduate schemes, internships and year-in-industry placements — the ones with real intakes and deadlines. Use "Everything graduate" for entry-level roles too.',
     'graduate-scheme': 'Structured graduate programmes with a defined intake — these usually have hard deadlines, so check the closing dates.',
     'internship': 'Summer internships, spring weeks and insight programmes.',
     'placement': 'Year-in-industry and sandwich placements, normally taken between second and final year.',
@@ -33,7 +37,7 @@
   ];
 
   const state = {
-    jobs: [], meta: {}, view: 'all', sort: 'match', stream: 'grad-all',
+    jobs: [], meta: {}, view: 'all', sort: 'match', stream: 'early',
     cvText: '', cvName: '',
     boost: [], must: [], not: [],
     cvWeight: 0.6,
@@ -105,6 +109,7 @@
     if (state.stream === 'local') return job.stream === 'local';
     if (job.stream !== 'graduate') return false;
     if (state.stream === 'grad-all') return true;
+    if (state.stream === 'early') return EARLY.includes(job.type);
     return job.type === state.stream;
   }
 
@@ -149,6 +154,7 @@
         if (job.stream === 'local') streamCounts['local']++;
         else {
           streamCounts['grad-all']++;
+          if (EARLY.includes(job.type)) streamCounts['early']++;
           if (streamCounts[job.type] !== undefined) streamCounts[job.type]++;
         }
       }

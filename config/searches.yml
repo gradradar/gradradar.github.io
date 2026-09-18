@@ -1,6 +1,24 @@
 # What the daily bot searches Adzuna and Reed for.
 # Add or remove lines freely - one search term per line.
 
+# Used for the cross-company Workable search. Kept tight and high-signal:
+# these should each describe a scheme, an internship or a placement.
+globalTerms:
+  - graduate scheme
+  - graduate programme
+  - graduate trainee
+  - graduate analyst
+  - graduate 2027
+  - internship
+  - summer internship
+  - summer analyst
+  - industrial placement
+  - placement year
+  - year in industry
+  - spring week
+  - insight programme
+  - apprenticeship
+
 terms:
   - graduate scheme
   - graduate programme

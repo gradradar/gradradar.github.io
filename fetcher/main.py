@@ -66,6 +66,22 @@ def collect_workday(specs: list[str], log) -> list[RawJob]:
     return jobs
 
 
+def collect_workable_search(searches: dict[str, list[str]], log) -> list[RawJob]:
+    """Workable's cross-company search - finds employers we never listed."""
+    jobs: list[RawJob] = []
+    terms = searches.get("globalTerms") or searches.get("terms", [])[:12]
+    for term in terms:
+        try:
+            found = ats.workable_search(term)
+        except Exception as exc:
+            log(f"  workable-search {term:<26} failed: {exc}")
+            continue
+        jobs.extend(found)
+        if found:
+            log(f"  workable-search {term:<26} {len(found):>4} postings")
+    return jobs
+
+
 def collect_aggregators(log) -> list[RawJob]:
     jobs: list[RawJob] = []
     for name, fn in aggregators.ADAPTERS.items():
@@ -320,6 +336,8 @@ def build(args) -> dict:
         log("workday career sites...")
         graduate_raw += collect_workday(workday_sites, log)
     if not args.no_aggregators:
+        log("workable cross-company search...")
+        graduate_raw += collect_workable_search(searches, log)
         log("keyless aggregators...")
         graduate_raw += collect_aggregators(log)
     if not args.no_boards:

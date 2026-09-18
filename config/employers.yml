@@ -2,54 +2,81 @@
 # Regenerate with: python3 tools/validate_employers.py --write
 
 ashby:
+  - snowflake   # 345 live postings at last check
   - wayve   # 187 live postings at last check
+  - plaid   # 112 live postings at last check
   - lendable   # 73 live postings at last check
-  - deliveroo   # 70 live postings at last check
+  - faculty   # 69 live postings at last check
   - qonto   # 47 live postings at last check
   - toogoodtogo   # 38 live postings at last check
   - thought-machine   # 36 live postings at last check
+  - zego   # 31 live postings at last check
   - pleo   # 29 live postings at last check
   - quantexa   # 29 live postings at last check
   - trainline   # 29 live postings at last check
   - paddle   # 26 live postings at last check
+  - jane   # 24 live postings at last check
+  - redis   # 24 live postings at last check
+  - confluent   # 21 live postings at last check
   - multiverse   # 20 live postings at last check
+  - oaknorth   # 20 live postings at last check
   - immersivelabs   # 15 live postings at last check
   - goodlord   # 13 live postings at last check
+  - deliveroo   # 11 live postings at last check
   - marshmallow   # 11 live postings at last check
+  - clearbank   # 10 live postings at last check
   - zilch   # 10 live postings at last check
   - second-nature   # 9 live postings at last check
-  - freetrade   # 7 live postings at last check
+  - freetrade   # 8 live postings at last check
+  - griffin   # 6 live postings at last check
   - zoe   # 6 live postings at last check
   - babbel   # 5 live postings at last check
+  - causaly   # 5 live postings at last check
+  - improbable   # 5 live postings at last check
   - beamery   # 4 live postings at last check
+  - codat   # 4 live postings at last check
   - permutive   # 4 live postings at last check
   - signal-ai   # 3 live postings at last check
+  - unmind   # 2 live postings at last check
   - snyk   # 1 live postings at last check
 
 greenhouse:
-  - stripe   # 667 live postings at last check
-  - hellofresh   # 439 live postings at last check
-  - sumup   # 380 live postings at last check
-  - braze   # 306 live postings at last check
-  - dept   # 206 live postings at last check
+  - databricks   # 875 live postings at last check
+  - stripe   # 668 live postings at last check
+  - hellofresh   # 436 live postings at last check
+  - mongodb   # 403 live postings at last check
+  - cloudflare   # 377 live postings at last check
+  - sumup   # 376 live postings at last check
+  - elastic   # 362 live postings at last check
+  - braze   # 302 live postings at last check
+  - point72   # 232 live postings at last check
+  - janestreet   # 229 live postings at last check
+  - dept   # 205 live postings at last check
   - wayve   # 190 live postings at last check
   - ebury   # 176 live postings at last check
+  - graphcore   # 175 live postings at last check
+  - imc   # 171 live postings at last check
   - airbnb   # 165 live postings at last check
   - klaviyo   # 143 live postings at last check
+  - deliveroo   # 125 live postings at last check
   - thetradedesk   # 115 live postings at last check
   - mixpanel   # 91 live postings at last check
   - taboola   # 88 live postings at last check
   - tide   # 85 live postings at last check
   - duolingo   # 83 live postings at last check
-  - n26   # 81 live postings at last check
+  - n26   # 82 live postings at last check
   - monzo   # 72 live postings at last check
   - similarweb   # 65 live postings at last check
+  - mangroup   # 56 live postings at last check
+  - getyourguide   # 52 live postings at last check
   - peak   # 51 live postings at last check
   - appsflyer   # 48 live postings at last check
-  - amplitude   # 38 live postings at last check
+  - flowtraders   # 45 live postings at last check
+  - fastly   # 43 live postings at last check
+  - amplitude   # 36 live postings at last check
   - flohealth   # 26 live postings at last check
   - gocardless   # 25 live postings at last check
-  - gymshark   # 25 live postings at last check
+  - gymshark   # 24 live postings at last check
   - sproutsocial   # 22 live postings at last check
   - wise   # 17 live postings at last check
   - iterable   # 16 live postings at last check
@@ -57,31 +84,45 @@ greenhouse:
   - immersive   # 12 live postings at last check
   - brandwatch   # 11 live postings at last check
   - contentful   # 11 live postings at last check
+  - gsacapital   # 10 live postings at last check
+  - winton   # 10 live postings at last check
   - form3   # 7 live postings at last check
   - cleo   # 6 live postings at last check
-  - deliveroo   # 6 live postings at last check
+  - national   # 5 live postings at last check
+  - frontline   # 3 live postings at last check
   - remote   # 2 live postings at last check
+  - truelayer   # 2 live postings at last check
+  - new   # 1 live postings at last check
+  - satalia   # 1 live postings at last check
 
 lever:
-  - qonto   # 49 live postings at last check
+  - palantir   # 313 live postings at last check
+  - thinkahead   # 137 live postings at last check
+  - qonto   # 48 live postings at last check
   - farfetch   # 45 live postings at last check
   - zopa   # 33 live postings at last check
   - contentsquare   # 28 live postings at last check
   - bloom   # 13 live postings at last check
+  - moonpig   # 12 live postings at last check
 
 recruitee:
-  - represent   # 8 live postings at last check
   - bloom   # 3 live postings at last check
 
 smartrecruiters:
-  - wise   # 427 live postings at last check
+  - accor   # 540 live postings at last check
+  - wise   # 429 live postings at last check
+  - sodexo   # 150 live postings at last check
   - beamery   # 135 live postings at last check
-  - asos   # 60 live postings at last check
+  - asos   # 59 live postings at last check
+  - nationaltrust   # 24 live postings at last check
+  - palantir   # 10 live postings at last check
   - hootsuite   # 8 live postings at last check
   - gousto   # 7 live postings at last check
   - bloom   # 2 live postings at last check
   - hibob   # 1 live postings at last check
   - secondnature   # 1 live postings at last check
+  - uber   # 1 live postings at last check
 
 workable:
   - charlotte-tilbury   # 293 live postings at last check
+  - bupa   # 12 live postings at last check

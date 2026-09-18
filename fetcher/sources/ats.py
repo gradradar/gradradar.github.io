@@ -208,3 +208,65 @@ ADAPTERS = {
     "smartrecruiters": smartrecruiters,
     "recruitee": recruitee,
 }
+
+
+# ---------------------------------------------------------------------------
+# Workable global search
+#
+# Unlike the per-company endpoints above, this searches across every employer
+# using Workable at once - so it finds graduate schemes at companies that are
+# not in config/employers.yml and that we would otherwise never know to ask for.
+# ---------------------------------------------------------------------------
+import urllib.parse  # noqa: E402  (kept beside the function that needs it)
+
+WORKABLE_SEARCH = "https://jobs.workable.com/api/v1/jobs"
+WORKABLE_MAX_PAGES = 8
+
+
+def workable_search(term: str, *, location: str = "united kingdom",
+                    max_pages: int = WORKABLE_MAX_PAGES) -> list[RawJob]:
+    out: list[RawJob] = []
+    token: str | None = None
+
+    for _ in range(max_pages):
+        query = urllib.parse.urlencode({"query": term, "location": location})
+        url = f"{WORKABLE_SEARCH}?{query}"
+        if token:
+            url += "&pageToken=" + urllib.parse.quote(token)
+        try:
+            data = request_json(url)
+        except FetchError:
+            break
+
+        jobs = data.get("jobs") or []
+        for j in jobs:
+            loc = j.get("location") or {}
+            where = ", ".join(filter(None, [
+                loc.get("city"), loc.get("subregion"), loc.get("countryName")]))
+            if not where:
+                locs = j.get("locations")
+                where = locs[0] if isinstance(locs, list) and locs else ""
+            company = j.get("company") or {}
+            body = " ".join(filter(None, [
+                strip_html(j.get("description")),
+                strip_html(j.get("requirementsSection")),
+                strip_html(j.get("benefitsSection")),
+            ]))
+            out.append(RawJob(
+                title=clean_title(j.get("title") or ""),
+                company=(company.get("title") or company.get("name") or "")
+                        if isinstance(company, dict) else str(company),
+                location=where,
+                url=j.get("url") or "",
+                source="workable-search",
+                description=body,
+                posted=_iso(j.get("created") or j.get("updated")),
+                remote=str(j.get("workplace") or "").lower() == "remote",
+                extra={"team": j.get("department") or "",
+                       "commitment": j.get("employmentType") or "",
+                       "query": term},
+            ))
+        token = data.get("nextPageToken")
+        if not token or not jobs:
+            break
+    return out

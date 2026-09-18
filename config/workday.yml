@@ -2,16 +2,30 @@
 # Regenerate with: python3 tools/validate_workday.py --write
 
 workday:
-  - pwc|wd3|Global_Experienced_Careers   # 4176 postings at last check
-  - accenture|wd103|accenturecareers   # 2000 postings at last check
-  - salesforce|wd12|External_Career_Site   # 1495 postings at last check
   - astrazeneca|wd3|Careers   # 1198 postings at last check
-  - santander|wd3|santandercareers   # 1053 postings at last check
-  - gsk|wd5|gskcareers   # 690 postings at last check
-  - workday|wd5|workday   # 379 postings at last check
-  - diageo|wd3|Diageo_Careers   # 271 postings at last check
+  - santander|wd3|santandercareers   # 1052 postings at last check
   - shell|wd3|shellcareers   # 149 postings at last check
-  - aviva|wd1|External   # 137 postings at last check
-  - rbs|wd3|rbs   # 102 postings at last check
-  - kantar|wd3|kantar   # 56 postings at last check
   - abrdn|wd3|abrdn   # 29 postings at last check
+  - pwc|wd3|Global_Experienced_Careers   # 0 postings at last check
+  - thales|wd3|Careers   # 0 postings at last check
+  - jll|wd1|jllcareers   # 0 postings at last check
+  - accenture|wd103|accenturecareers   # 0 postings at last check
+  - amgen|wd1|Careers   # 0 postings at last check
+  - salesforce|wd12|External_Career_Site   # 0 postings at last check
+  - cisco|wd5|Cisco_Careers   # 0 postings at last check
+  - sanofi|wd3|SanofiCareers   # 0 postings at last check
+  - mars|wd3|External   # 0 postings at last check
+  - gsk|wd5|gskcareers   # 0 postings at last check
+  - intel|wd1|External   # 0 postings at last check
+  - pfizer|wd1|pfizercareers   # 0 postings at last check
+  - aig|wd1|aig   # 0 postings at last check
+  - workday|wd5|workday   # 0 postings at last check
+  - bdo|wd3|bdo   # 0 postings at last check
+  - stagecoach|wd3|External   # 0 postings at last check
+  - diageo|wd3|Diageo_Careers   # 0 postings at last check
+  - arriva|wd3|Careers   # 0 postings at last check
+  - crowe|wd12|External_Careers   # 0 postings at last check
+  - aviva|wd1|External   # 0 postings at last check
+  - lbg|wd3|Lbg_Careers   # 0 postings at last check
+  - rbs|wd3|rbs   # 0 postings at last check
+  - kantar|wd3|kantar   # 0 postings at last check

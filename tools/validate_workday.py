@@ -25,19 +25,59 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
 
 # Large UK graduate employers known to run Workday.
 TENANTS = [
-    "pwc", "kpmg", "ey", "deloitte", "deloittecoll", "hsbc", "barclays",
-    "lloydsbanking", "natwest", "rbs", "santander", "nationwide", "aviva",
-    "legalandgeneral", "lg", "schroders", "abrdn", "phoenixgroup", "zurich",
-    "axa", "allianz", "rsa", "admiralgroup", "directline", "mandg",
-    "unilever", "diageo", "gsk", "astrazeneca", "reckittbenckiser", "haleon",
+    # Professional services and Big Four
+    "pwc", "kpmg", "ey", "ernstyoung", "deloitte", "deloittecoll", "grantthornton",
+    "bdo", "rsmuk", "mazars", "pkf", "moorekingston", "crowe", "azets",
+    # Banking and finance
+    "hsbc", "barclays", "lloydsbanking", "lbg", "natwest", "rbs", "santander",
+    "nationwide", "tsb", "metrobank", "virginmoney", "coop", "handelsbanken",
+    "closebrothers", "investec", "rathbones", "schroders", "abrdn", "mandg",
+    "jupiteram", "janushenderson", "fidelity", "blackrock", "statestreet",
+    "northerntrust", "bnymellon", "jpmorgan", "morganstanley", "citi",
+    # Insurance
+    "aviva", "legalandgeneral", "phoenixgroup", "zurich", "axa", "allianz",
+    "rsa", "admiralgroup", "directline", "hiscox", "beazley", "lloyds",
+    "markel", "chubb", "aig", "willistowerswatson", "aon", "marsh", "gallagher",
+    # Retail and consumer
     "tesco", "sainsburys", "asda", "morrisons", "marksandspencer", "mands",
     "johnlewis", "boots", "kingfisher", "next", "primark", "aldi", "lidl",
-    "vodafone", "bt", "sky", "virginmedia", "telefonica",
-    "rollsroyce", "bae", "baesystems", "jaguarlandrover", "airbus",
-    "nationalgrid", "sse", "centrica", "shell", "bp",
-    "accenture", "capgemini", "ibm", "cognizant", "infosys", "wipro",
-    "amazon", "microsoft", "salesforce", "workday", "dell", "hp",
-    "nielseniq", "kantar", "wpp", "publicisgroupe", "omnicom", "dentsu",
+    "coopgroup", "waitrose", "iceland", "poundland", "bandm", "wilko",
+    "dixons", "currys", "halfords", "screwfix", "travisperkins",
+    # FMCG and pharma
+    "unilever", "diageo", "gsk", "astrazeneca", "reckittbenckiser", "haleon",
+    "pepsico", "cocacola", "ccep", "nestle", "mars", "mondelez", "kraftheinz",
+    "danone", "kelloggs", "generalmills", "abinbev", "heineken", "carlsberg",
+    "britvic", "premierfoods", "associatedbritishfoods", "tatelyle", "bat",
+    "imperialbrands", "pg", "loreal", "estee", "jnj", "pfizer", "msd",
+    "novartis", "roche", "sanofi", "bayer", "lilly", "abbvie", "amgen",
+    # Telecoms, media, utilities
+    "vodafone", "bt", "sky", "virginmedia", "telefonica", "threeuk",
+    "nationalgrid", "sse", "centrica", "eonuk", "edfenergy", "octopusenergy",
+    "unitedutilities", "severntrent", "thameswater", "anglianwater",
+    "itv", "channel4", "bbc", "guardian", "informa", "relx", "pearson",
+    # Industrials, engineering, transport
+    "rollsroyce", "bae", "baesystems", "jaguarlandrover", "airbus", "leonardo",
+    "babcock", "qinetiq", "thales", "gknaerospace", "meggitt", "smithsgroup",
+    "weir", "spiraxsarco", "renishaw", "dyson", "jcb", "caterpillar",
+    "networkrail", "nationalhighways", "tfl", "arriva", "firstgroup",
+    "stagecoach", "dhl", "dpd", "royalmail", "maersk", "kuehnenagel",
+    # Property, construction, professional
+    "balfourbeatty", "kier", "morgansindall", "galliford", "willmottdixon",
+    "laingorourke", "skanska", "mace", "turnerandtownsend", "arcadis",
+    "aecom", "jacobs", "wsp", "atkins", "arup", "mottmacdonald", "stantec",
+    "savills", "knightfrank", "jll", "cbre", "cushmanwakefield", "colliers",
+    # Tech and consulting
+    "accenture", "capgemini", "ibm", "cognizant", "infosys", "wipro", "tcs",
+    "atos", "dxc", "fujitsu", "ncc", "softwire", "kainos", "sopra",
+    "amazon", "microsoft", "salesforce", "workday", "oracle", "sap", "adobe",
+    "dell", "hp", "hpe", "cisco", "intel", "nvidia", "vmware", "servicenow",
+    # Research, data, marketing
+    "nielseniq", "kantar", "ipsos", "yougov", "gartner", "mckinsey", "bain",
+    "bcg", "oliverwyman", "lek", "alixpartners", "fticonsulting",
+    "wpp", "publicisgroupe", "omnicom", "dentsu", "havas", "s4capital",
+    # Public and third sector
+    "nhs", "civilservice", "cabinetoffice", "hmrc", "dwp", "mod",
+    "networkhomes", "peabody", "clarionhg", "l-and-q",
 ]
 
 DATACENTRES = ["wd1", "wd2", "wd3", "wd5", "wd103", "wd12"]
@@ -107,6 +147,25 @@ def main() -> int:
 
     if args.write:
         out = ROOT / "config" / "workday.yml"
+        # Merge, never overwrite: these probes hit rate limits, and a transient
+        # failure must not silently delete a career site we already verified.
+        if out.exists():
+            kept = 0
+            for line in out.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line.startswith("- "):
+                    continue
+                spec = line[2:].split("#")[0].strip()
+                parts = spec.split("|")
+                if len(parts) != 3:
+                    continue
+                tenant = parts[0]
+                if tenant not in found:
+                    found[tenant] = (tenant, parts[1], parts[2], 0)
+                    kept += 1
+            if kept:
+                print(f"kept {kept} previously verified sites not seen this run",
+                      file=sys.stderr)
         lines = ["# Verified Workday career sites: tenant|datacentre|site",
                  "# Regenerate with: python3 tools/validate_workday.py --write", "",
                  "workday:"]

@@ -126,11 +126,14 @@ def collect_boards(searches: dict[str, list[str]], log) -> list[RawJob]:
 
     if boards.adzuna_enabled():
         log(f"  adzuna (budget {boards.ADZUNA_DAILY_BUDGET} calls):")
-        # A UK-wide search already returns roles in every city, so do those
-        # first and only spend what is left on per-city searches.
-        passes = [("", 4)] + [(loc, 1) for loc in locations if loc]
-        for where, pages in passes:
-            for term in terms:
+        # Every term runs nationally and goes deep, because a UK-wide search
+        # already returns roles in every city. Only the core terms get an extra
+        # per-city pass, for roles that rank too low to surface nationally.
+        city_terms = searches.get("cityTerms") or terms[:12]
+        passes: list[tuple[str, int, list[str]]] = [("", 5, terms)]
+        passes += [(loc, 1, city_terms) for loc in locations if loc]
+        for where, pages, pass_terms in passes:
+            for term in pass_terms:
                 if boards.adzuna_budget_left() <= 0:
                     log("    call budget spent - stopping adzuna here")
                     break

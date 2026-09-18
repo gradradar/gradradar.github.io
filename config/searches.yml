@@ -1,8 +1,11 @@
 # What the daily bot searches Adzuna and Reed for.
-# One search term per line. Adzuna returns 50 results a page.
+#
+# Budget note: a UK-wide search already returns roles in every city, so the
+# allowance goes on distinct search terms rather than repeating the same few
+# terms town by town. Every term runs nationally and goes several pages deep;
+# only the core terms below get a per-city pass on top.
 
-# Used for the cross-company Workable search. Kept tight and high-signal:
-# these should each describe a scheme, an internship or a placement.
+# Used for the cross-company Workable search. Kept tight and high-signal.
 globalTerms:
   - graduate scheme
   - graduate programme
@@ -20,7 +23,7 @@ globalTerms:
   - apprenticeship
 
 terms:
-  # --- schemes -----------------------------------------------------------
+  # --- schemes, generic ---------------------------------------------------
   - graduate scheme
   - graduate programme
   - graduate program
@@ -28,26 +31,33 @@ terms:
   - graduate analyst
   - graduate consultant
   - graduate management
+  - graduate opportunities
+  - graduate intake
   - management trainee
   - rotational programme
   - future leaders programme
+  - leadership programme
+  - early careers programme
   - graduate 2027
   - graduate 2026
-  - trainee accountant
   - trainee scheme
   - school leaver programme
   - degree apprenticeship
-  # --- internships -------------------------------------------------------
+  # --- internships --------------------------------------------------------
   - internship
   - summer internship
+  - winter internship
   - summer analyst
+  - summer placement
   - intern 2027
   - spring week
   - spring insight
   - insight programme
+  - insight week
   - vacation scheme
   - work experience programme
-  # --- placements --------------------------------------------------------
+  - undergraduate internship
+  # --- placements ---------------------------------------------------------
   - industrial placement
   - placement year
   - year in industry
@@ -55,22 +65,96 @@ terms:
   - 12 month placement
   - undergraduate placement
   - student placement
-  # --- field-specific grad roles ------------------------------------------
-  - graduate marketing
-  - graduate finance
-  - graduate sales
-  - graduate data analyst
+  - placement student
+  - industrial trainee
+  # --- finance and professional services ----------------------------------
+  - trainee accountant
+  - graduate accountant
+  - accounting graduate
+  - audit graduate
+  - graduate auditor
+  - tax graduate
+  - assurance graduate
+  - advisory graduate
+  - actuarial graduate
+  - graduate actuary
+  - finance graduate
+  - graduate finance analyst
+  - corporate finance graduate
+  - investment banking analyst
+  - asset management graduate
+  - graduate risk analyst
+  - compliance graduate
+  - treasury graduate
+  - insurance graduate
+  - underwriting graduate
+  - aca trainee
+  - acca trainee
+  - cima trainee
+  # --- consulting and strategy --------------------------------------------
+  - consulting graduate
+  - strategy graduate
   - graduate business analyst
-  - graduate operations
-  - graduate hr
-  - graduate supply chain
+  - graduate analyst consulting
+  # --- marketing and communications ---------------------------------------
+  - marketing graduate
+  - graduate marketing
+  - digital marketing graduate
+  - brand graduate
+  - communications graduate
+  - pr graduate
+  - content graduate
+  - social media graduate
+  - graduate copywriter
+  - media graduate
+  # --- sales and commercial ------------------------------------------------
+  - sales graduate
+  - graduate sales
+  - commercial graduate
+  - business development graduate
+  - account management graduate
   - graduate recruitment consultant
+  # --- data, operations, supply chain --------------------------------------
+  - data graduate
+  - graduate data analyst
+  - analytics graduate
+  - operations graduate
+  - graduate operations analyst
+  - supply chain graduate
+  - procurement graduate
+  - logistics graduate
+  - project management graduate
+  # --- people, retail, other ------------------------------------------------
+  - hr graduate
+  - people graduate
+  - talent graduate
+  - retail graduate
+  - buying graduate
+  - merchandising graduate
+  - fmcg graduate
+  # --- junior variants ------------------------------------------------------
   - junior marketing
   - junior finance
   - junior analyst
+  - junior consultant
 
-# ALL = search the whole UK. Cities add local results the national search
-# ranks too low to return.
+# Only these get an extra per-city pass. The full list above already runs
+# nationally, so this is just for roles that rank too low to surface there.
+cityTerms:
+  - graduate scheme
+  - graduate programme
+  - internship
+  - summer internship
+  - industrial placement
+  - placement year
+  - trainee accountant
+  - marketing graduate
+  - finance graduate
+  - sales graduate
+  - data graduate
+  - business development graduate
+
+# ALL = search the whole UK, several pages deep.
 locations:
   - ALL
   - London
@@ -93,3 +177,8 @@ locations:
   - Oxford
   - Southampton
   - Milton Keynes
+  - Bournemouth
+  - Norwich
+  - Exeter
+  - York
+  - Derby
